@@ -469,6 +469,37 @@ describe("ProtocolClient", () => {
     });
   });
 
+  it("uses ACP content for streamed tool arguments and results", () => {
+    const tools = new Map();
+    expect(mapAcpUpdate({
+      sessionUpdate: "tool_call",
+      toolCallId: "call-1",
+      title: "Read",
+      content: [{ type: "content", content: { type: "text", text: '{"path":"a.ts"}' } }],
+    }, tools)).toMatchObject([{
+      type: "ToolCall",
+      payload: { function: { arguments: '{"path":"a.ts"}' } },
+    }]);
+    expect(mapAcpUpdate({
+      sessionUpdate: "tool_call_update",
+      toolCallId: "call-1",
+      status: "in_progress",
+      rawInput: { path: "src/a.ts" },
+    }, tools)).toContainEqual({
+      type: "ToolCallPart",
+      payload: { tool_call_id: "call-1", arguments_part: '{"path":"src/a.ts"}', replace_arguments: true },
+    });
+    expect(mapAcpUpdate({
+      sessionUpdate: "tool_call_update",
+      toolCallId: "call-1",
+      status: "completed",
+      content: [{ type: "content", content: { type: "text", text: "file contents" } }],
+    }, tools)).toMatchObject([{
+      type: "ToolResult",
+      payload: { return_value: { output: "file contents" } },
+    }]);
+  });
+
   describe("stop", () => {
     it("does nothing when not started", async () => {
       const client = new ProtocolClient();

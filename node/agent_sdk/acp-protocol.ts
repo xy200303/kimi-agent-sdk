@@ -23,6 +23,7 @@ interface AcpToolCall {
   rawInput?: unknown;
   status?: string;
   content?: unknown;
+  argumentText?: string;
 }
 
 export interface AcpSessionConfig {
@@ -271,13 +272,14 @@ export function mapAcpUpdate(update: any, toolCalls = new Map<string, AcpToolCal
   if (update.sessionUpdate === "tool_call") {
     const tool = update as AcpToolCall;
     if (!tool.toolCallId) return [];
-    toolCalls.set(tool.toolCallId, tool);
+    const argumentText = stringifyToolInput(tool.rawInput) ?? acpContentText(tool.content);
+    toolCalls.set(tool.toolCallId, { ...tool, argumentText });
     return [{
       type: "ToolCall",
       payload: {
         type: "function",
         id: tool.toolCallId,
-        function: { name: tool.title ?? tool.kind ?? "Tool", arguments: stringifyToolInput(tool.rawInput) },
+        function: { name: tool.title ?? tool.kind ?? "Tool", arguments: argumentText },
         extras: { title: tool.title, kind: tool.kind, status: tool.status },
       },
     }];
@@ -286,7 +288,10 @@ export function mapAcpUpdate(update: any, toolCalls = new Map<string, AcpToolCal
   if (update.sessionUpdate === "tool_call_update") {
     const tool = update as AcpToolCall;
     const previous = toolCalls.get(tool.toolCallId) ?? { toolCallId: tool.toolCallId };
-    const current = { ...previous, ...tool };
+    const argumentText = tool.rawInput !== undefined
+      ? stringifyToolInput(tool.rawInput)
+      : acpContentText(tool.content) ?? previous.argumentText;
+    const current = { ...previous, ...tool, argumentText };
     toolCalls.set(tool.toolCallId, current);
     if (!tool.toolCallId) return [];
     if (tool.status === "completed" || tool.status === "failed") {
@@ -303,7 +308,15 @@ export function mapAcpUpdate(update: any, toolCalls = new Map<string, AcpToolCal
         },
       }];
     }
-    return [{ type: "StatusUpdate", payload: {} }];
+    const events: StreamEvent[] = [];
+    if (argumentText !== undefined && argumentText !== previous.argumentText) {
+      events.push({
+        type: "ToolCallPart",
+        payload: { tool_call_id: tool.toolCallId, arguments_part: argumentText, replace_arguments: true },
+      });
+    }
+    events.push({ type: "StatusUpdate", payload: {} });
+    return events;
   }
 
   if (update.sessionUpdate === "plan") {
@@ -318,7 +331,25 @@ function stringifyToolInput(value: unknown): string | undefined {
 }
 
 function stringifyToolOutput(value: unknown): string {
-  if (typeof value === "string") return value;
+  const contentText = acpContentText(value);
+  if (contentText !== undefined) return contentText;
   if (value === undefined || value === null) return "";
   return JSON.stringify(value);
+}
+
+function acpContentText(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  if (!Array.isArray(value)) return undefined;
+
+  const text = value.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const content = (item as { content?: unknown }).content;
+    if (typeof content === "string") return [content];
+    if (content && typeof content === "object" && typeof (content as { text?: unknown }).text === "string") {
+      return [(content as { text: string }).text];
+    }
+    if (typeof (item as { text?: unknown }).text === "string") return [(item as { text: string }).text];
+    return [];
+  });
+  return text.length > 0 ? text.join("\n") : undefined;
 }
