@@ -16,7 +16,6 @@ interface Props {
 const CLI_ERROR_TITLES: Record<CLIErrorType, string> = {
   not_found: "CLI Not Found",
   version_low: "CLI Outdated",
-  extract_failed: "Installation Failed",
   protocol_error: "Connection Error",
 };
 
@@ -109,7 +108,7 @@ function CLIErrorContent({ cliResult, errorMessage: fallbackErrorMessage }: { cl
             Open Settings
           </Button>
           <p className="text-xs text-muted-foreground/70 text-center">
-            Update <code className="bg-muted px-1 rounded">kimi.executablePath</code> or clear it to use bundled CLI
+            Update <code className="bg-muted px-1 rounded">kimi.executablePath</code> or clear it to use the installed CLI
           </p>
         </div>
 
@@ -134,7 +133,7 @@ function CLIErrorContent({ cliResult, errorMessage: fallbackErrorMessage }: { cl
           <span className="text-sm font-medium">{title}</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          {errorType === "extract_failed" ? "Failed to extract the bundled CLI. Please install manually." : "The bundled CLI is unavailable. Please install manually."}
+          Kimi Code uses the CLI installed on your machine. Install it, add it to PATH, then reload this view.
         </p>
       </div>
 

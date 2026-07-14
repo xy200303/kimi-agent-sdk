@@ -4,17 +4,6 @@ import * as fs from "fs";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { ProtocolClient, type InitializeResult, type KimiConfig } from "@moonshot-ai/kimi-agent-sdk";
-import {
-  getPlatformKey,
-  getPlatformInfo,
-  readManifest,
-  readInstalled,
-  writeInstalled,
-  extractBundledCLI,
-  downloadAndInstallCLI,
-  downloadAndInstallUV,
-  copyUVWrapper,
-} from "./cli-downloader";
 import type { CLICheckResult } from "shared/types";
 
 const execAsync = promisify(execFile);
@@ -60,29 +49,18 @@ export function compareVersion(a: string, b: string): number {
 }
 
 export class CLIManager {
-  private extensionBinPath: string;
-  private kimiPath: string;
-  private uvPath: string;
   private acpConfig: KimiConfig | null = null;
   private acpAuthenticated = false;
 
-  constructor(private ctx: vscode.ExtensionContext) {
-    const globalBin = path.join(ctx.globalStorageUri.fsPath, "bin");
-    this.extensionBinPath = path.join(ctx.extensionUri.fsPath, "bin", "kimi");
-    this.kimiPath = path.join(globalBin, "kimi");
-    this.uvPath = path.join(globalBin, "uv");
-  }
+  constructor(_ctx: vscode.ExtensionContext) {}
 
   getExecutablePath(): string {
-    const custom = vscode.workspace.getConfiguration("kimi").get<string>("executablePath");
+    const custom = this.getCustomPath();
     if (custom) {
       return custom;
     }
 
-    const installed = readInstalled(this.kimiPath);
-    const info = getPlatformInfo();
-    const filename = installed?.type === "uv" ? info.wrapper : info.exe;
-    return path.join(this.kimiPath, filename);
+    return this.findInstalledCLI() ?? "";
   }
 
   getAcpConfig(): KimiConfig | null {
@@ -95,71 +73,50 @@ export class CLIManager {
 
   async checkInstalled(workDir: string): Promise<CLICheckResult> {
     const resolved = { isCustomPath: this.isCustomPath(), path: this.getExecutablePath() };
-
-    try {
-      if (!(await this.ensureCLI())) {
-        return { ok: false, resolved, error: { type: "extract_failed", message: "Failed to install CLI" } };
-      }
-    } catch (err) {
-      console.error("Error ensuring CLI:", err);
-      return { ok: false, resolved, error: { type: "extract_failed", message: errorText(err) } };
+    if (!resolved.path) {
+      return {
+        ok: false,
+        resolved,
+        error: {
+          type: "not_found",
+          message: "Kimi Code CLI was not found. Install it and ensure its directory is on PATH, or set kimi.executablePath.",
+        },
+      };
     }
 
     return this.verify(workDir, resolved);
   }
 
-  private isCustomPath(): boolean {
-    return !!vscode.workspace.getConfiguration("kimi").get<string>("executablePath");
+  private getCustomPath(): string {
+    return vscode.workspace.getConfiguration("kimi").get<string>("executablePath", "").trim();
   }
 
-  private async ensureCLI(): Promise<boolean> {
-    if (this.isCustomPath()) {
-      return true;
-    }
+  private isCustomPath(): boolean {
+    return !!this.getCustomPath();
+  }
 
-    const manifest = readManifest(this.extensionBinPath);
-    if (!manifest) {
-      return false;
-    }
+  private findInstalledCLI(): string | undefined {
+    const executable = process.platform === "win32" ? "kimi.exe" : "kimi";
+    const pathEntries = process.env.PATH?.split(path.delimiter) ?? [];
+    const home = process.env.HOME ?? process.env.USERPROFILE;
+    const fallbackDirectories = home
+      ? process.platform === "win32"
+        ? [path.join(home, ".kimi-code", "bin")]
+        : [path.join(home, ".local", "bin"), path.join(home, ".kimi-code", "bin")]
+      : [];
 
-    const platform = getPlatformKey();
-    const installed = readInstalled(this.kimiPath);
-
-    if (installed?.version === manifest.version && installed?.platform === platform) {
-      return true;
-    }
-
-    const asset = manifest.platforms[platform];
-    console.log(`[Kimi Code] Installing CLI for platform: ${platform}, asset:`, asset, `installed info:`, installed, "manifest:", manifest);
-
-    if (asset) {
-      if (manifest.bundledPlatform === platform) {
-        console.log(`[Kimi Code] Extracting bundled CLI for ${platform}...`);
-        const archiveExt = asset.filename.endsWith(".zip") ? "zip" : "tar.gz";
-
-        console.log(`[Kimi Code] Extracting bundled CLI for ${platform} from ${this.extensionBinPath} with archive type ${archiveExt}...`);
-        extractBundledCLI(path.join(this.extensionBinPath, `archive.${archiveExt}`), this.kimiPath);
-        console.log(`[Kimi Code] Bundled CLI extracted for ${platform}`);
-
-      } else {
-        console.log(`[Kimi Code] Platform ${platform} not matched bundled, downloading CLI...`);
-        vscode.window.showInformationMessage(`Downloading Kimi CLI for ${platform}...`);
-        await downloadAndInstallCLI(asset, this.kimiPath);
+    for (const directory of [...pathEntries, ...fallbackDirectories]) {
+      const candidate = path.join(directory.replace(/^"|"$/g, ""), executable);
+      if (fs.existsSync(candidate)) {
+        return candidate;
       }
-      writeInstalled(this.kimiPath, { version: manifest.version, platform, type: "native" });
-    } else {
-      console.log(`[Kimi Code] Platform ${platform} not supported natively, installing via uv...`);
-      vscode.window.showInformationMessage(`Native CLI not available for ${platform}. Installing via uv (first run may take a moment)...`);
-      await downloadAndInstallUV(this.uvPath);
-      copyUVWrapper(this.ctx.extensionUri.fsPath, this.kimiPath);
-      writeInstalled(this.kimiPath, { version: manifest.version, platform, type: "uv" });
     }
 
-    return true;
+    return undefined;
   }
 
   private async verify(workDir: string, resolved: { isCustomPath: boolean; path: string }): Promise<CLICheckResult> {
-    const execPath = this.getExecutablePath();
+    const execPath = resolved.path;
 
     try {
       const info = await this.getInfo(execPath);

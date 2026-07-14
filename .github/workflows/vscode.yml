@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       run_windows_smoke:
-        description: "Run win32-x64 bundled CLI smoke"
+        description: "Validate that the win32-x64 VSIX contains no bundled CLI"
         required: true
         type: boolean
         default: true
@@ -68,7 +68,6 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     outputs:
       extension_version: ${{ steps.meta.outputs.extension_version }}
-      expected_cli_version: ${{ steps.verify.outputs.expected_cli_version }}
       artifact_name: ${{ steps.verify.outputs.artifact_name }}
 
     steps:
@@ -124,7 +123,7 @@ jobs:
           retention-days: 14
 
   smoke-windows:
-    name: Smoke win32-x64 bundled CLI
+    name: Validate win32-x64 VSIX
     runs-on: windows-latest
     needs: package
     if: ${{ github.event_name == 'workflow_dispatch' && (inputs.run_windows_smoke || inputs.publish_to_marketplace || inputs.publish_to_open_vsx) }}
@@ -136,52 +135,29 @@ jobs:
           name: ${{ needs.package.outputs.artifact_name }}
           path: node/vscode_extension
 
-      - name: Run kimi.exe info smoke
+      - name: Confirm VSIX has no bundled CLI
         shell: pwsh
         working-directory: node/vscode_extension
-        env:
-          EXPECTED_CLI_VERSION: ${{ needs.package.outputs.expected_cli_version }}
         run: |
           $ErrorActionPreference = "Stop"
 
           $vsix = Resolve-Path ".\kimi-code-win32-x64.vsix"
           $workDir = Join-Path $env:RUNNER_TEMP "kimi-vscode-smoke"
           $vsixDir = Join-Path $workDir "vsix"
-          $cliDir = Join-Path $workDir "cli"
 
           Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
-          New-Item -ItemType Directory -Path $vsixDir, $cliDir | Out-Null
+          New-Item -ItemType Directory -Path $vsixDir | Out-Null
 
           $vsixZip = Join-Path $workDir "kimi-code-win32-x64.zip"
           Copy-Item $vsix $vsixZip
           Expand-Archive -Path $vsixZip -DestinationPath $vsixDir -Force
 
-          $archive = Join-Path $vsixDir "extension\bin\kimi\archive.zip"
-          if (!(Test-Path $archive)) {
-            throw "Missing bundled CLI archive: $archive"
+          $bundledCli = Join-Path $vsixDir "extension\bin\kimi"
+          if (Test-Path $bundledCli) {
+            throw "VSIX must not contain a bundled CLI: $bundledCli"
           }
 
-          Expand-Archive -Path $archive -DestinationPath $cliDir -Force
-          $kimi = Get-ChildItem -Path $cliDir -Recurse -Filter "kimi.exe" | Select-Object -First 1
-          if (!$kimi) {
-            throw "kimi.exe not found after extracting $archive"
-          }
-
-          $output = & $kimi.FullName info --json
-          if ($LASTEXITCODE -ne 0) {
-            throw "kimi.exe info --json failed with exit code $LASTEXITCODE"
-          }
-
-          $json = ($output | Out-String).Trim()
-          $info = $json | ConvertFrom-Json
-          if ($info.kimi_cli_version -ne $env:EXPECTED_CLI_VERSION) {
-            throw "CLI version mismatch: got $($info.kimi_cli_version), expected $env:EXPECTED_CLI_VERSION"
-          }
-          if (!$info.wire_protocol_version) {
-            throw "wire_protocol_version is missing from kimi.exe info --json"
-          }
-
-          Write-Host "kimi.exe info OK: version=$($info.kimi_cli_version), wire=$($info.wire_protocol_version)"
+          Write-Host "VSIX contains no bundled CLI"
 
   publish:
     name: Publish platform VSIX

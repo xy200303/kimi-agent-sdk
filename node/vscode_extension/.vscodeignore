@@ -19,6 +19,9 @@ webview-ui/components.json
 # Scripts
 scripts/**
 
+# Kimi Code is supplied by the user's local installation, never by this extension.
+bin/**
+
 # Other
 .gitignore
 **/*.map

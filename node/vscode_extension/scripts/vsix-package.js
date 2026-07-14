@@ -1,12 +1,11 @@
 const { spawn } = require("child_process");
-const { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = require("fs");
+const { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = require("fs");
 const { tmpdir } = require("os");
 const { basename, join, relative } = require("path");
 
 const { TARGETS, verifyVsixFiles } = require("./vsix-verify");
 
 const rootDir = join(__dirname, "..");
-const binDir = join(rootDir, "bin", "kimi");
 const vsceBin = join(rootDir, "node_modules", ".bin", process.platform === "win32" ? "vsce.cmd" : "vsce");
 
 const args = process.argv.slice(2);
@@ -92,7 +91,6 @@ async function packageTarget(target) {
   rmSync(outPath, { force: true });
   console.log(`Packaging [${target}]...`);
 
-  await runCommand(target, "node", ["scripts/download-cli.js", target], packageDir);
   await runCommand(target, vsceBin, ["package", "--no-dependencies", "--target", target, "--out", outPath], packageDir);
 
   console.log(`Packaged [${target}] -> ${basename(outPath)}`);
@@ -124,10 +122,6 @@ async function runLimited(items, limit, worker) {
 async function main() {
   console.log(`Building for: ${targets.join(", ")}`);
   console.log(`Package concurrency: ${concurrency}`);
-
-  if (existsSync(binDir)) {
-    rmSync(binDir, { recursive: true, force: true });
-  }
 
   await runCommand("build", "pnpm", ["run", "build"], rootDir);
   await runLimited(targets, concurrency, packageTarget);

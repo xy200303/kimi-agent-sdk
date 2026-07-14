@@ -17,7 +17,7 @@ AI coding assistant for VS Code, built for long-context workflows and complex co
 3. Click the Kimi icon in the Activity Bar
 4. Sign in with [kimi.com/code](https://www.kimi.com/code) subscription to start using Kimi Code
 
-> **Using your own Kimi CLI?** Set a custom executable path in Settings → `kimi.executablePath`
+> Install Kimi Code CLI and make it available on `PATH`. To override auto-discovery, set `kimi.executablePath` in Settings.
 
 ## Docs
 
