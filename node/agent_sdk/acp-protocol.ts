@@ -94,6 +94,9 @@ export class AcpProtocolClient {
     const channel = createEventChannel<StreamEvent>();
     this.eventChannel = channel;
     channel.push({ type: "TurnBegin", payload: { user_input: content } });
+    // The webview's Wire-compatible renderer requires a step before it can append
+    // text, thoughts, or tool calls from ACP session updates.
+    channel.push({ type: "StepBegin", payload: { n: 1 } });
     const prompt = typeof content === "string" ? [{ type: "text", text: content }] : content.filter((part) => part.type === "text").map((part) => ({ type: "text", text: part.text }));
     const result = this.request("session/prompt", { sessionId: this.sessionId, prompt })
       .then((): RunResult => ({ status: "finished" }))

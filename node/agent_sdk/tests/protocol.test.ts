@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from "vite
 import { EventEmitter } from "node:events";
 import { Readable } from "node:stream";
 import { createEventChannel } from "../protocol";
-import { mapAcpUpdate } from "../acp-protocol";
+import { AcpProtocolClient, mapAcpUpdate } from "../acp-protocol";
 import { TransportError } from "../errors";
 
 // ============================================================================
@@ -336,6 +336,41 @@ describe("ProtocolClient", () => {
 
       const client = new ProtocolClient();
       await expect(client.start({ sessionId: "test", workDir: "/tmp" })).rejects.toThrow(TransportError);
+    });
+  });
+
+  describe("ACP prompts", () => {
+    it("emits a step before ACP content updates", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { agentInfo: { name: "Kimi", version: "test" } } })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        } else if (request.method === "session/prompt") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", method: "session/update", params: { update: { sessionUpdate: "agent_message_chunk", content: { text: "hello" } } } })}\n`);
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+
+      const stream = client.sendPrompt("Hi");
+      const events = [];
+      for await (const event of stream.events) {
+        events.push(event);
+      }
+
+      expect(events).toEqual([
+        { type: "TurnBegin", payload: { user_input: "Hi" } },
+        { type: "StepBegin", payload: { n: 1 } },
+        { type: "ContentPart", payload: { type: "text", text: "hello" } },
+        { type: "TurnEnd", payload: {} },
+      ]);
     });
   });
 
