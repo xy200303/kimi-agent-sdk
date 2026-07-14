@@ -1,6 +1,6 @@
-# Kimi Code
+# Kimi Code (Local Fixes)
 
-AI coding assistant for VS Code, built for long-context workflows and complex coding tasks.
+Local build of Kimi Code for VS Code, including unreleased fixes from `release/local-vscode-fixes`.
 
 ## Features
 

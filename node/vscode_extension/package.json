@@ -1,9 +1,9 @@
 {
   "name": "kimi-code",
   "publisher": "moonshot-ai",
-  "displayName": "Kimi Code",
+  "displayName": "Kimi Code (Local Fixes)",
   "description": "Official Kimi Code plugin for VS Code",
-  "version": "0.5.10",
+  "version": "0.5.11-local.1",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
