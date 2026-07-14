@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 
 import type { ApprovalResponse, ContentPart, InitializeResult, RunResult, StreamEvent } from "./schema";
-import { TransportError } from "./errors";
+import { ProtocolError, TransportError } from "./errors";
 import { createEventChannel, type ClientOptions, type PromptStream } from "./protocol";
 
 const ACP_PROTOCOL_VERSION = 1;
@@ -32,6 +32,16 @@ export interface AcpSessionConfig {
     currentValue?: string;
     options?: Array<{ value: string; name: string }>;
   }>;
+}
+
+type AcpSessionResult = Omit<AcpSessionConfig, "sessionId"> & { sessionId?: string };
+
+function toAcpSessionId(sessionId: string): string {
+  return sessionId.startsWith("session_") ? sessionId : `session_${sessionId}`;
+}
+
+function toStorageSessionId(sessionId: string): string {
+  return sessionId.startsWith("session_") ? sessionId.slice("session_".length) : sessionId;
 }
 
 export class AcpProtocolClient {
@@ -78,9 +88,18 @@ export class AcpProtocolClient {
       protocolVersion: ACP_PROTOCOL_VERSION,
       clientCapabilities: {},
     })) as { agentInfo?: { name?: string; version?: string } };
-    const session = (await this.request("session/new", { cwd: options.workDir, mcpServers: [] })) as AcpSessionConfig;
-    this.sessionId = session.sessionId;
-    this.config = session;
+    const session = (await this.request(
+      options.resumeSession && options.sessionId ? "session/load" : "session/new",
+      options.resumeSession && options.sessionId
+        ? { sessionId: toAcpSessionId(options.sessionId), cwd: options.workDir, mcpServers: [] }
+        : { cwd: options.workDir, mcpServers: [] },
+    )) as AcpSessionResult;
+    const acpSessionId = options.resumeSession && options.sessionId ? toAcpSessionId(options.sessionId) : session.sessionId;
+    if (!acpSessionId) {
+      throw new ProtocolError("SCHEMA_MISMATCH", "ACP did not return a session ID");
+    }
+    this.sessionId = acpSessionId;
+    this.config = { sessionId: toStorageSessionId(acpSessionId), configOptions: session.configOptions ?? [] };
     await this.applySessionOptions(options);
 
     return {
