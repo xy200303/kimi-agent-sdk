@@ -365,6 +365,65 @@ describe("ProtocolClient", () => {
       expect(client.sessionConfig?.sessionId).toBe("12345678-1234-1234-1234-123456789abc");
     });
 
+    it("parses slash commands from the ACP initialize response", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({
+            jsonrpc: "2.0",
+            id: request.id,
+            result: {
+              agentInfo: { name: "Kimi", version: "test" },
+              slashCommands: [
+                { name: "commit", description: "Generate a commit message", aliases: ["c"] },
+                { name: "test", description: "Run tests", aliases: [] },
+                { name: "invalid", aliases: [] },
+              ],
+            },
+          })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      const initResult = await client.start({ workDir: "/tmp", executablePath: "kimi" });
+
+      expect(initResult.slash_commands).toEqual([
+        { name: "commit", description: "Generate a commit message", aliases: ["c"] },
+        { name: "test", description: "Run tests", aliases: [] },
+      ]);
+    });
+
+    it("falls back to snake_case slash_commands in the ACP initialize response", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({
+            jsonrpc: "2.0",
+            id: request.id,
+            result: {
+              agentInfo: { name: "Kimi", version: "test" },
+              slash_commands: [{ name: "fix", description: "Fix code issues", aliases: [] }],
+            },
+          })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      const initResult = await client.start({ workDir: "/tmp", executablePath: "kimi" });
+
+      expect(initResult.slash_commands).toEqual([{ name: "fix", description: "Fix code issues", aliases: [] }]);
+    });
+
     it("emits a step before ACP content updates", async () => {
       const proc = createMockProcess();
       proc.stdin.write.mockImplementation((line: string) => {
