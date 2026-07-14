@@ -17,10 +17,10 @@ export const PREFLIGHT_CODES = new Set<string>([
 // User-friendly error messages
 export const ERROR_MESSAGES: Record<string, string> = {
   // Pre-flight
-  [TransportErrorCodes.CLI_NOT_FOUND]: "Kimi Code CLI not found.",
-  [TransportErrorCodes.SPAWN_FAILED]: "Failed to start Kimi Code CLI.",
+  [TransportErrorCodes.CLI_NOT_FOUND]: "Spec Kimi CLI not found.",
+  [TransportErrorCodes.SPAWN_FAILED]: "Failed to start Spec Kimi CLI.",
   [TransportErrorCodes.ALREADY_STARTED]: "A session is already running.",
-  [TransportErrorCodes.STDIN_NOT_WRITABLE]: "Failed to communicate with Kimi Code CLI.",
+  [TransportErrorCodes.STDIN_NOT_WRITABLE]: "Failed to communicate with Spec Kimi CLI.",
   [TransportErrorCodes.HANDSHAKE_TIMEOUT]: "Connection timed out.",
   [TransportErrorCodes.PROCESS_CRASHED]: "Process connection lost.",
 
@@ -40,7 +40,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   [ProtocolErrorCodes.INVALID_REQUEST]: "Invalid request.",
   [ProtocolErrorCodes.INVALID_PARAMS]: "Invalid parameters.",
   [ProtocolErrorCodes.INTERNAL_ERROR]: "Internal error occurred.",
-  [ProtocolErrorCodes.INCOMPLETE_TURN]: "Kimi Code stopped before completing its pending tool calls. Check the Kimi Code output for the ACP stop reason.",
+  [ProtocolErrorCodes.INCOMPLETE_TURN]: "Spec Kimi stopped before completing its pending tool calls. Check the Spec Kimi output for the ACP stop reason.",
 };
 
 export function classifyError(code: string): ErrorPhase {

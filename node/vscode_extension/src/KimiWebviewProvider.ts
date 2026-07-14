@@ -50,7 +50,7 @@ export class KimiWebviewProvider implements vscode.WebviewViewProvider {
   createPanel(): vscode.WebviewPanel {
     const webviewId = `panel_${crypto.randomUUID()}`;
 
-    const panel = vscode.window.createWebviewPanel("kimiPanel", "Kimi Code", vscode.ViewColumn.One, {
+    const panel = vscode.window.createWebviewPanel("kimiPanel", "Spec Kimi", vscode.ViewColumn.One, {
       enableScripts: true,
       retainContextWhenHidden: true,
       localResourceRoots: [this.extensionUri],
@@ -130,7 +130,7 @@ export class KimiWebviewProvider implements vscode.WebviewViewProvider {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="${csp}">
-  <title>Kimi Code</title>
+  <title>Spec Kimi</title>
 </head>
 <body data-baseuri="${baseUri}" data-webviewid="${webviewId}">
   <div id="root"></div>

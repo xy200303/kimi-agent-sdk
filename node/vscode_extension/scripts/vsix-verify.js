@@ -6,7 +6,7 @@ const TARGETS = ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64", "win3
 const REQUIRED_DIST_FILES = ["extension/dist/extension.js", "extension/dist/webview.js"];
 
 function getVsixFile(target) {
-  return `kimi-code-${target}.vsix`;
+  return `spec-kimi-${target}.vsix`;
 }
 
 function listZipEntries(filePath) {
@@ -108,7 +108,7 @@ if (require.main === module) {
   try {
     const { extensionVersion } = verifyVsixFiles(rootDir, targets);
     if (process.env.GITHUB_OUTPUT) {
-      fs.appendFileSync(process.env.GITHUB_OUTPUT, `artifact_name=kimi-code-vsix-${extensionVersion}\n`);
+      fs.appendFileSync(process.env.GITHUB_OUTPUT, `artifact_name=spec-kimi-vsix-${extensionVersion}\n`);
     }
   } catch (error) {
     console.error(error.message);

@@ -12,7 +12,7 @@ let outputChannel: vscode.OutputChannel;
 let provider: KimiWebviewProvider;
 
 export function activate(context: vscode.ExtensionContext) {
-  outputChannel = vscode.window.createOutputChannel("Kimi Code");
+  outputChannel = vscode.window.createOutputChannel("Spec Kimi");
 
   enableLogs("kimi-sdk:*");
   setLogSink((...args: any[]) => {
@@ -24,7 +24,7 @@ export function activate(context: vscode.ExtensionContext) {
   console.log("Kimi SDK logs enabled");
 
   const remoteInfo = vscode.env.remoteName ? ` (remote: ${vscode.env.remoteName})` : "";
-  log(`Kimi Code extension activating...${remoteInfo}`);
+  log(`Spec Kimi extension activating...${remoteInfo}`);
 
   initCLIManager(context);
 

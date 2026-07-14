@@ -7,5 +7,5 @@ export function KimiLogo({ className }: { className?: string }) {
     return null;
   }
 
-  return <img src={logoUrl} alt="KIMI" className={className} aria-label="KIMI" />;
+  return <img src={logoUrl} alt="Spec Kimi" className={className} aria-label="Spec Kimi" />;
 }

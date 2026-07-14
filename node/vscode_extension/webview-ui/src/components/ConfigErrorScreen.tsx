@@ -133,7 +133,7 @@ function CLIErrorContent({ cliResult, errorMessage: fallbackErrorMessage }: { cl
           <span className="text-sm font-medium">{title}</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          Kimi Code uses the CLI installed on your machine. Install it, add it to PATH, then reload this view.
+          Spec Kimi uses the CLI installed on your machine. Install it, add it to PATH, then reload this view.
         </p>
       </div>
 
@@ -170,7 +170,7 @@ function NoModelsContent({ onRefresh, onBackToLogin }: { onRefresh?: () => void;
 
       <div className="space-y-4">
         <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
-          <p className="text-xs font-medium text-foreground">Option 1: Subscribe to Kimi Code (Recommended)</p>
+          <p className="text-xs font-medium text-foreground">Option 1: Subscribe to Spec Kimi (Recommended)</p>
           <a href="https://kimi.com/code" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs text-foreground hover:underline">
             <IconExternalLink className="size-4" />
             kimi.com/code
@@ -184,7 +184,7 @@ function NoModelsContent({ onRefresh, onBackToLogin }: { onRefresh?: () => void;
           </p>
           <Button onClick={() => bridge.runCLI()} variant="outline" size="sm" className="gap-2 w-full">
             <IconTerminal2 className="size-4" />
-            Open Terminal &amp; Run kimi
+            Open Terminal &amp; Run spec-kimi
           </Button>
           <ManualSetupHint />
         </div>
@@ -221,7 +221,7 @@ export function ConfigErrorScreen({ type, cliResult, errorMessage, onRefresh, on
               <IconLoader2 className="size-4 animate-spin" />
               <span className="text-sm">Loading...</span>
             </div>
-            <p className="text-xs text-muted-foreground/70">Kimi Code is initializing. May take up to 30 seconds. Please wait.</p>
+            <p className="text-xs text-muted-foreground/70">Spec Kimi is initializing. May take up to 30 seconds. Please wait.</p>
           </div>
         </div>
       </div>
@@ -238,7 +238,7 @@ export function ConfigErrorScreen({ type, cliResult, errorMessage, onRefresh, on
               <IconFolderOpen className="size-5" />
               <span className="text-sm font-medium">No Workspace Open</span>
             </div>
-            <p className="text-xs text-muted-foreground/70">Please open a folder to start using Kimi Code.</p>
+            <p className="text-xs text-muted-foreground/70">Please open a folder to start using Spec Kimi.</p>
           </div>
           <Button onClick={() => bridge.openFolder()} className="gap-2">
             <IconFolderOpen className="size-4" />

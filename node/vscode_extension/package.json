@@ -1,8 +1,8 @@
 {
-  "name": "kimi-code",
+  "name": "spec-kimi",
   "publisher": "moonshot-ai",
-  "displayName": "Kimi Code (Local Fixes)",
-  "description": "Official Kimi Code plugin for VS Code",
+  "displayName": "Spec Kimi (Local Fixes)",
+  "description": "Spec-driven Kimi Code fork for VS Code",
   "version": "0.5.11-local.14",
   "license": "Apache-2.0",
   "repository": {
@@ -38,6 +38,7 @@
     "json",
     "autocomplete",
     "moonshot",
+    "spec-kimi",
     "kimi",
     "moonshot-ai"
   ],
@@ -47,7 +48,7 @@
   "icon": "resources/kimi-icon-storefront.png",
   "contributes": {
     "configuration": {
-      "title": "Kimi Code",
+      "title": "Spec Kimi",
       "properties": {
         "kimi.yoloMode": {
           "type": "boolean",
@@ -57,17 +58,17 @@
         "kimi.autosave": {
           "type": "boolean",
           "default": true,
-          "description": "Automatically save files before Kimi reads or writes them"
+          "description": "Automatically save files before Spec Kimi reads or writes them"
         },
         "kimi.executablePath": {
           "type": "string",
           "default": "",
-          "description": "Path to the Kimi Code executable (leave empty to discover the installed CLI)"
+          "description": "Path to the Spec Kimi executable (leave empty to discover the installed CLI)"
         },
         "kimi.enableNewConversationShortcut": {
           "type": "boolean",
           "default": false,
-          "description": "Use Cmd/Ctrl+N to start a new conversation when Kimi is focused"
+          "description": "Use Cmd/Ctrl+N to start a new conversation when Spec Kimi is focused"
         },
         "kimi.useCtrlEnterToSend": {
           "type": "boolean",
@@ -77,7 +78,7 @@
         "kimi.environmentVariables": {
           "type": "object",
           "default": {},
-          "description": "Environment variables passed to the Kimi Code CLI",
+          "description": "Environment variables passed to the Spec Kimi CLI",
           "additionalProperties": {
             "type": "string"
           }
@@ -105,53 +106,53 @@
             "Share once when conversation starts",
             "Share when active file changes"
           ],
-          "description": "Control when to share the active editor's file and cursor position with Kimi"
+          "description": "Control when to share the active editor's file and cursor position with Spec Kimi"
         }
       }
     },
     "commands": [
       {
         "command": "kimi.clearAllState",
-        "title": "Kimi Code: [DEBUG] Clear All State"
+        "title": "Spec Kimi: [DEBUG] Clear All State"
       },
       {
         "command": "kimi.openInTab",
-        "title": "Kimi Code: Open in New Tab",
+        "title": "Spec Kimi: Open in New Tab",
         "icon": "$(link-external)"
       },
       {
         "command": "kimi.openInSideBar",
-        "title": "Kimi Code: Open in Side Panel",
+        "title": "Spec Kimi: Open in Side Panel",
         "icon": "$(layout-sidebar-left)"
       },
       {
         "command": "kimi.focusInput",
-        "title": "Kimi Code: Focus Input",
+        "title": "Spec Kimi: Focus Input",
         "icon": "$(edit)"
       },
       {
         "command": "kimi.insertMention",
-        "title": "Kimi Code: Insert Current File",
+        "title": "Spec Kimi: Insert Current File",
         "icon": "$(mention)"
       },
       {
         "command": "kimi.newConversation",
-        "title": "Kimi Code: New Conversation",
+        "title": "Spec Kimi: New Conversation",
         "icon": "$(add)"
       },
       {
         "command": "kimi.showLogs",
-        "title": "Kimi Code: Show Logs",
+        "title": "Spec Kimi: Show Logs",
         "icon": "$(output)"
       },
       {
         "command": "kimi.resetKimi",
-        "title": "Kimi Code: Reset Kimi (in case of any issues/no response)",
+        "title": "Spec Kimi: Reset Kimi (in case of any issues/no response)",
         "icon": "$(refresh)"
       },
       {
         "command": "kimi.logout",
-        "title": "Kimi Code: Logout",
+        "title": "Spec Kimi: Logout",
         "icon": "$(sign-out)"
       }
     ],
@@ -172,7 +173,7 @@
       "activitybar": [
         {
           "id": "kimi-sidebar",
-          "title": "Kimi Code",
+          "title": "Spec Kimi",
           "icon": "resources/kimi-icon.svg"
         }
       ]
@@ -182,7 +183,7 @@
         {
           "type": "webview",
           "id": "kimi.webview",
-          "name": "Kimi Code"
+          "name": "Spec Kimi"
         }
       ]
     },

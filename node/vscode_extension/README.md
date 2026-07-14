@@ -1,6 +1,6 @@
-# Kimi Code (Local Fixes)
+# Spec Kimi (Local Fixes)
 
-Local build of Kimi Code for VS Code, including unreleased fixes from `release/local-vscode-fixes`.
+Local build of Spec Kimi for VS Code, including unreleased fixes from `release/local-vscode-fixes`.
 
 ## Features
 
@@ -15,13 +15,13 @@ Local build of Kimi Code for VS Code, including unreleased fixes from `release/l
 1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=moonshot-ai.kimi-code)
 2. Open a folder in VS Code
 3. Click the Kimi icon in the Activity Bar
-4. Sign in with [kimi.com/code](https://www.kimi.com/code) subscription to start using Kimi Code
+4. Sign in with [kimi.com/code](https://www.kimi.com/code) subscription to start using Spec Kimi
 
-> Install Kimi Code CLI and make it available on `PATH`. To override auto-discovery, set `kimi.executablePath` in Settings.
+> Install Spec Kimi CLI and make it available on `PATH`. To override auto-discovery, set `kimi.executablePath` in Settings.
 
 ## Docs
 
-Official doc for Kimi Code can be found at [www.kimi.com/code/docs](https://www.kimi.com/code/docs/en/kimi-code-for-vscode/guides/getting-started.html)
+Official doc for Spec Kimi can be found at [www.kimi.com/code/docs](https://www.kimi.com/code/docs/en/kimi-code-for-vscode/guides/getting-started.html)
 
 ## License
 

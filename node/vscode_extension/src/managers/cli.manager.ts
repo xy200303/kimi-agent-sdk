@@ -79,7 +79,7 @@ export class CLIManager {
         resolved,
         error: {
           type: "not_found",
-          message: "Kimi Code CLI was not found. Install it and ensure its directory is on PATH, or set kimi.executablePath.",
+          message: "Spec Kimi CLI was not found. Install it and ensure its directory is on PATH, or set kimi.executablePath.",
         },
       };
     }
@@ -96,13 +96,13 @@ export class CLIManager {
   }
 
   private findInstalledCLI(): string | undefined {
-    const executable = process.platform === "win32" ? "kimi.exe" : "kimi";
+    const executable = process.platform === "win32" ? "spec-kimi.exe" : "spec-kimi";
     const pathEntries = process.env.PATH?.split(path.delimiter) ?? [];
     const home = process.env.HOME ?? process.env.USERPROFILE;
     const fallbackDirectories = home
       ? process.platform === "win32"
-        ? [path.join(home, ".kimi-code", "bin")]
-        : [path.join(home, ".local", "bin"), path.join(home, ".kimi-code", "bin")]
+        ? [path.join(home, ".spec-kimi", "bin"), path.join(home, ".kimi-code", "bin")]
+        : [path.join(home, ".local", "bin"), path.join(home, ".spec-kimi", "bin"), path.join(home, ".kimi-code", "bin")]
       : [];
 
     for (const directory of [...pathEntries, ...fallbackDirectories]) {
@@ -137,7 +137,7 @@ export class CLIManager {
 
     try {
       const initResult = await this.verifyWire(execPath, workDir);
-      console.log(`[kimi-code] CLI check passed, slash commands: ${initResult.slash_commands.length}`, initResult.slash_commands);
+      console.log(`[spec-kimi] CLI check passed, slash commands: ${initResult.slash_commands.length}`, initResult.slash_commands);
       return { ok: true, resolved, slashCommands: initResult.slash_commands };
     } catch (err) {
       console.error("Error verifying protocol:", err);

@@ -26,7 +26,7 @@ export function Header() {
     <header className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0 @container">
       <div className="flex items-center gap-2">
         <KimiLogo className="size-5" />
-        <span className="text-sm font-semibold">Kimi Code</span>
+        <span className="text-sm font-semibold">Spec Kimi</span>
       </div>
       <div className="flex items-center gap-1">
         {sessionId && (

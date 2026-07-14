@@ -19,7 +19,7 @@ for (const target of targets) {
   }
 }
 
-const rawConcurrency = Number(process.env.KIMI_VSIX_PACKAGE_CONCURRENCY);
+const rawConcurrency = Number(process.env.SPEC_KIMI_VSIX_PACKAGE_CONCURRENCY);
 const concurrency = Number.isInteger(rawConcurrency) && rawConcurrency > 0 ? Math.min(rawConcurrency, targets.length) : Math.min(3, targets.length);
 const tempRoot = mkdtempSync(join(tmpdir(), "kimi-vscode-package-"));
 
@@ -87,7 +87,7 @@ function copyPackageWorkspace(target) {
 
 async function packageTarget(target) {
   const packageDir = copyPackageWorkspace(target);
-  const outPath = join(rootDir, `kimi-code-${target}.vsix`);
+  const outPath = join(rootDir, `spec-kimi-${target}.vsix`);
 
   rmSync(outPath, { force: true });
   console.log(`Packaging [${target}]...`);

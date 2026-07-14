@@ -119,9 +119,9 @@ export function LoginScreen({ onLoginSuccess, onSkip }: LoginScreenProps) {
         <div className="max-w-sm w-full text-center space-y-6">
           <KimiMascot className="h-12 mx-auto" />
           <div className="space-y-2">
-            <h1 className="text-lg font-semibold">Welcome to Kimi Code</h1>
+            <h1 className="text-lg font-semibold">Welcome to Spec Kimi</h1>
             <div className="text-left space-y-2">
-              <p className="text-xs leading-5">Use Kimi Code with your Kimi account subscription or your existing API setup.</p>
+              <p className="text-xs leading-5">Use Spec Kimi with your Kimi account subscription or your existing API setup.</p>
             </div>
           </div>
 
@@ -136,7 +136,7 @@ export function LoginScreen({ onLoginSuccess, onSkip }: LoginScreenProps) {
               <Button onClick={handleLogin} className="w-full justify-center gap-2">
                 Sign in with Kimi Account
               </Button>
-              <p className="text-[11px] text-muted-foreground leading-4">Use your Kimi account and Kimi Code subscription.</p>
+              <p className="text-[11px] text-muted-foreground leading-4">Use your Kimi account and Spec Kimi subscription.</p>
             </div>
 
             <div className="text-left space-y-1">
@@ -155,7 +155,7 @@ export function LoginScreen({ onLoginSuccess, onSkip }: LoginScreenProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>Subscription Required</AlertDialogTitle>
             <AlertDialogDescription>
-              Your account does not have an active Kimi Code subscription. Please subscribe to continue using Kimi Code with your account.
+              Your account does not have an active Spec Kimi subscription. Please subscribe to continue using Spec Kimi with your account.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
