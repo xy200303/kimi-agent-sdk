@@ -61,6 +61,7 @@ function copyPackageWorkspace(target) {
 
   cpSync(rootDir, packageDir, {
     recursive: true,
+    dereference: true,
     filter(src) {
       const rel = relative(rootDir, src);
       if (!rel) return true;
