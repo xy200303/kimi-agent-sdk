@@ -178,14 +178,23 @@ export class AcpProtocolClient {
     if (!line.trim()) return;
     let message: any;
     try { message = JSON.parse(line); } catch { return; }
+    // ACP is bidirectional JSON-RPC: an agent-side request may reuse the
+    // numeric ID of one of our outstanding requests. Dispatch methods before
+    // looking at the ID so a reverse permission request never masquerades as
+    // an empty response to session/prompt.
+    if (message.method === "session/update") {
+      this.handleUpdate(message.params);
+      return;
+    }
+    if (message.method === "session/request_permission") {
+      this.handleApproval(message);
+      return;
+    }
     if (message.id !== undefined && this.pendingRequests.has(message.id)) {
       const pending = this.pendingRequests.get(message.id)!;
       this.pendingRequests.delete(message.id);
       if (message.error) pending.reject(new Error(message.error.message)); else pending.resolve(message.result);
-      return;
     }
-    if (message.method === "session/update") this.handleUpdate(message.params);
-    if (message.method === "session/request_permission") this.handleApproval(message);
   }
 
   private handleUpdate(params: any): void {
