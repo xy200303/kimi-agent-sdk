@@ -113,7 +113,7 @@ export class BridgeHandler {
     await Promise.all(dirty.map((d) => d.save()));
   }
 
-  private getOrCreateSession(webviewId: string, model: string, thinking: boolean, sessionId?: string): Session {
+  private async getOrCreateSession(webviewId: string, model: string, thinking: boolean, sessionId?: string): Promise<Session> {
     const workDir = this.requireWorkDir(webviewId);
     const cli = getCLIManager();
     const config = parseConfig();
@@ -156,6 +156,7 @@ export class BridgeHandler {
     }
 
     if (existing && sessions.has(existing.sessionId)) {
+      await existing.initialize();
       return existing;
     }
 
@@ -170,6 +171,7 @@ export class BridgeHandler {
       clientInfo: { name: "kimi-code-for-vs-code", version: VSCodeSettings.getExtensionConfig().version },
     });
 
+    await session.initialize();
     sessions.set(session.sessionId, session);
     this.fileManager.setSessionId(webviewId, session.sessionId);
     return session;

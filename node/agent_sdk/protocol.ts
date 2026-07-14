@@ -55,6 +55,8 @@ export interface HookRegistration {
 
 export interface ClientOptions {
   sessionId?: string;
+  /** Resume an existing session instead of creating a new one when ACP is used. */
+  resumeSession?: boolean;
   workDir: string;
   model?: string;
   thinking?: boolean;

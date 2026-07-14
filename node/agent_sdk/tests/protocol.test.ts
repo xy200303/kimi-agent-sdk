@@ -340,6 +340,31 @@ describe("ProtocolClient", () => {
   });
 
   describe("ACP prompts", () => {
+    it("loads a persisted session when asked to resume", async () => {
+      const proc = createMockProcess();
+      const requests: Array<{ method: string; params: Record<string, unknown> }> = [];
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        requests.push(request);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        } else if (request.method === "session/load") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { configOptions: [] } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi", sessionId: "12345678-1234-1234-1234-123456789abc", resumeSession: true });
+
+      expect(requests).toContainEqual(expect.objectContaining({
+        method: "session/load",
+        params: { sessionId: "session_12345678-1234-1234-1234-123456789abc", cwd: "/tmp", mcpServers: [] },
+      }));
+      expect(client.sessionConfig?.sessionId).toBe("12345678-1234-1234-1234-123456789abc");
+    });
+
     it("emits a step before ACP content updates", async () => {
       const proc = createMockProcess();
       proc.stdin.write.mockImplementation((line: string) => {
