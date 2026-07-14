@@ -122,7 +122,7 @@ export class AcpProtocolClient {
     channel.push({ type: "StepBegin", payload: { n: 1 } });
     const prompt = typeof content === "string" ? [{ type: "text", text: content }] : content.filter((part) => part.type === "text").map((part) => ({ type: "text", text: part.text }));
     const result = this.request("session/prompt", { sessionId: this.sessionId, prompt })
-      .then((response): RunResult => this.toRunResult(response as AcpPromptResponse))
+      .then((response): RunResult => this.toRunResult(response as AcpPromptResponse | undefined))
       .finally(() => {
         channel.push({ type: "TurnEnd", payload: {} });
         this.finishEvents();
@@ -200,8 +200,11 @@ export class AcpProtocolClient {
     this.eventChannel?.push({ type: "ApprovalRequest", payload: { id: requestId, tool_call_id: params?.toolCall?.toolCallId ?? "acp", sender: params?.toolCall?.title ?? "Tool", action: "execute tool", description: params?.toolCall?.title ?? "Approval required" } });
   }
 
-  private toRunResult(response: AcpPromptResponse): RunResult {
-    const stopReason = response.stopReason;
+  private toRunResult(response: AcpPromptResponse | undefined): RunResult {
+    // Older Kimi Code ACP builds may acknowledge session/prompt with an
+    // omitted result. Treat that as an unknown terminal reason instead of
+    // dereferencing it and masking the actual unfinished-turn diagnostic.
+    const stopReason = response?.stopReason;
     const pendingToolCallIds = [...this.toolCalls.values()]
       .filter((tool) => tool.status !== "completed" && tool.status !== "failed")
       .map((tool) => tool.toolCallId);
