@@ -34,6 +34,10 @@ export interface AcpSessionConfig {
   }>;
 }
 
+interface AcpPromptResponse {
+  stopReason?: string;
+}
+
 type AcpSessionResult = Omit<AcpSessionConfig, "sessionId"> & { sessionId?: string };
 
 function toAcpSessionId(sessionId: string): string {
@@ -118,7 +122,7 @@ export class AcpProtocolClient {
     channel.push({ type: "StepBegin", payload: { n: 1 } });
     const prompt = typeof content === "string" ? [{ type: "text", text: content }] : content.filter((part) => part.type === "text").map((part) => ({ type: "text", text: part.text }));
     const result = this.request("session/prompt", { sessionId: this.sessionId, prompt })
-      .then((): RunResult => ({ status: "finished" }))
+      .then((response): RunResult => this.toRunResult(response as AcpPromptResponse))
       .finally(() => {
         channel.push({ type: "TurnEnd", payload: {} });
         this.finishEvents();
@@ -194,6 +198,37 @@ export class AcpProtocolClient {
     const requestId = String(message.id);
     this.pendingApprovals.set(requestId, { rpcId: message.id, options: params?.options ?? [] });
     this.eventChannel?.push({ type: "ApprovalRequest", payload: { id: requestId, tool_call_id: params?.toolCall?.toolCallId ?? "acp", sender: params?.toolCall?.title ?? "Tool", action: "execute tool", description: params?.toolCall?.title ?? "Approval required" } });
+  }
+
+  private toRunResult(response: AcpPromptResponse): RunResult {
+    const stopReason = response.stopReason;
+    const pendingToolCallIds = [...this.toolCalls.values()]
+      .filter((tool) => tool.status !== "completed" && tool.status !== "failed")
+      .map((tool) => tool.toolCallId);
+
+    console.warn("[kimi-code] ACP prompt completed", {
+      sessionId: this.sessionId,
+      stopReason,
+      pendingToolCallIds,
+    });
+
+    if (stopReason === "cancelled") {
+      return { status: "cancelled" };
+    }
+
+    if (stopReason === "max_steps") {
+      return { status: "max_steps_reached" };
+    }
+
+    if (pendingToolCallIds.length > 0) {
+      throw new ProtocolError(
+        "INCOMPLETE_TURN",
+        `Kimi Code ended the ACP turn before completing tool calls: ${pendingToolCallIds.join(", ")}`,
+        { sessionId: this.sessionId ?? undefined, stopReason, pendingToolCallIds },
+      );
+    }
+
+    return { status: "finished" };
   }
 
   private finishEvents(error?: Error): void {
