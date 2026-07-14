@@ -3,7 +3,7 @@
   "publisher": "moonshot-ai",
   "displayName": "Spec Kimi (Local Fixes)",
   "description": "Spec-driven Kimi Code fork for VS Code",
-  "version": "0.5.11-local.16",
+  "version": "0.5.11-local.18",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",

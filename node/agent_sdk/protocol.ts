@@ -175,6 +175,7 @@ export class ProtocolClient {
         cwd: options.workDir,
         env: { ...cleanEnv, ...options.environmentVariables },
         stdio: ["pipe", "pipe", "pipe"],
+        shell: isWindowsCmd(executable),
       });
     } catch (err) {
       throw new TransportError("SPAWN_FAILED", `Failed to spawn CLI: ${err}`, err);
@@ -671,7 +672,11 @@ export class ProtocolClient {
 
 const acpSupportCache = new Map<string, boolean>();
 
-function supportsAcp(executable: string, cwd: string, environmentVariables?: Record<string, string>): boolean {
+export function isWindowsCmd(executable: string): boolean {
+  return process.platform === "win32" && executable.toLowerCase().endsWith(".cmd");
+}
+
+export function supportsAcp(executable: string, cwd: string, environmentVariables?: Record<string, string>): boolean {
   const cacheKey = executable;
   const cached = acpSupportCache.get(cacheKey);
   if (cached !== undefined) return cached;
@@ -682,6 +687,7 @@ function supportsAcp(executable: string, cwd: string, environmentVariables?: Rec
       env: { ...process.env, ...environmentVariables },
       stdio: "ignore",
       timeout: 5000,
+      shell: isWindowsCmd(executable),
     });
     const supported = result.status === 0;
     acpSupportCache.set(cacheKey, supported);

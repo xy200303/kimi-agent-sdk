@@ -96,7 +96,7 @@ export class CLIManager {
   }
 
   private findInstalledCLI(): string | undefined {
-    const executable = process.platform === "win32" ? "spec-kimi.exe" : "spec-kimi";
+    const candidates = process.platform === "win32" ? ["spec-kimi.cmd", "spec-kimi.exe"] : ["spec-kimi"];
     const pathEntries = process.env.PATH?.split(path.delimiter) ?? [];
     const home = process.env.HOME ?? process.env.USERPROFILE;
     const fallbackDirectories = home
@@ -106,9 +106,12 @@ export class CLIManager {
       : [];
 
     for (const directory of [...pathEntries, ...fallbackDirectories]) {
-      const candidate = path.join(directory.replace(/^"|"$/g, ""), executable);
-      if (fs.existsSync(candidate)) {
-        return candidate;
+      const cleanDir = directory.replace(/^"|"$/g, "");
+      for (const executable of candidates) {
+        const candidate = path.join(cleanDir, executable);
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
       }
     }
 
@@ -149,8 +152,13 @@ export class CLIManager {
   }
 
   private async getInfo(execPath: string): Promise<{ kimi_cli_version: string; wire_protocol_version: string }> {
-    const { stdout } = await execAsync(execPath, ["info", "--json"]);
-    return JSON.parse(stdout);
+    const options: Parameters<typeof execAsync>[2] =
+      process.platform === "win32" && execPath.toLowerCase().endsWith(".cmd")
+        ? { shell: true, encoding: "utf-8" as const }
+        : { encoding: "utf-8" as const };
+    const { stdout } = await execAsync(execPath, ["info", "--json"], options);
+    const raw = Buffer.isBuffer(stdout) ? stdout.toString() : stdout;
+    return JSON.parse(raw);
   }
 
   private async verifyWire(execPath: string, workDir: string): Promise<InitializeResult> {

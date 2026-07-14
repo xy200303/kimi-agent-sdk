@@ -4,7 +4,7 @@ import type { ApprovalResponse, ContentPart, InitializeResult, RunResult, SlashC
 import { SlashCommandInfoSchema } from "./schema";
 import { ProtocolError, TransportError } from "./errors";
 import { log } from "./logger";
-import { createEventChannel, type ClientOptions, type PromptStream } from "./protocol";
+import { createEventChannel, isWindowsCmd, type ClientOptions, type PromptStream } from "./protocol";
 
 const ACP_PROTOCOL_VERSION = 1;
 
@@ -94,6 +94,7 @@ export class AcpProtocolClient {
       cwd: options.workDir,
       env: { ...process.env, ...options.environmentVariables },
       stdio: ["pipe", "pipe", "pipe"],
+      shell: isWindowsCmd(executable),
     });
 
     if (!this.process.stdin || !this.process.stdout) {
