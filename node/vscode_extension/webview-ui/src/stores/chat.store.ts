@@ -353,7 +353,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
     } else {
       set({ isStreaming: true, handshakeReceived: true });
     }
-    useApprovalStore.getState().clearRequests();
   },
 
   startNewConversation: async () => {
