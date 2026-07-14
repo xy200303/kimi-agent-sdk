@@ -421,6 +421,29 @@ describe("ProtocolClient", () => {
       await expect(stream.result).resolves.toEqual({ status: "cancelled" });
     });
 
+    it("tolerates an ACP prompt response with no result payload", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        } else if (request.method === "session/prompt") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+      const stream = client.sendPrompt("Hi");
+      await Array.fromAsync(stream.events);
+
+      await expect(stream.result).resolves.toEqual({ status: "finished" });
+    });
+
     it("rejects a completed ACP prompt with unresolved tool calls", async () => {
       const proc = createMockProcess();
       proc.stdin.write.mockImplementation((line: string) => {
