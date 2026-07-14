@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from "vite
 import { EventEmitter } from "node:events";
 import { Readable } from "node:stream";
 import { createEventChannel } from "../protocol";
+import { mapAcpUpdate } from "../acp-protocol";
 import { TransportError } from "../errors";
 
 // ============================================================================
@@ -107,12 +108,48 @@ describe("createEventChannel", () => {
   });
 });
 
+describe("mapAcpUpdate", () => {
+  it("maps ACP message and thought chunks to content parts", () => {
+    expect(mapAcpUpdate({ sessionUpdate: "agent_message_chunk", content: { text: "hello" } })).toEqual([
+      { type: "ContentPart", payload: { type: "text", text: "hello" } },
+    ]);
+    expect(mapAcpUpdate({ sessionUpdate: "agent_thought_chunk", content: { text: "reasoning" } })).toEqual([
+      { type: "ContentPart", payload: { type: "think", think: "reasoning" } },
+    ]);
+  });
+
+  it("maps ACP tool lifecycle updates to Wire-compatible events", () => {
+    const tools = new Map();
+    expect(mapAcpUpdate({ sessionUpdate: "tool_call", toolCallId: "call-1", title: "Read", rawInput: { path: "a.ts" } }, tools)).toEqual([
+      {
+        type: "ToolCall",
+        payload: {
+          type: "function",
+          id: "call-1",
+          function: { name: "Read", arguments: '{"path":"a.ts"}' },
+          extras: { title: "Read", kind: undefined, status: undefined },
+        },
+      },
+    ]);
+    expect(mapAcpUpdate({ sessionUpdate: "tool_call_update", toolCallId: "call-1", status: "completed", content: "done" }, tools)).toEqual([
+      {
+        type: "ToolResult",
+        payload: {
+          tool_call_id: "call-1",
+          return_value: { is_error: false, output: "done", message: "Tool call completed", display: [] },
+        },
+      },
+    ]);
+  });
+});
+
 // ============================================================================
 // ProtocolClient Tests
 // ============================================================================
 const mockSpawn = vi.fn();
 vi.mock("node:child_process", () => ({
   spawn: (...args: unknown[]) => mockSpawn(...args),
+  spawnSync: () => ({ status: 1 }),
 }));
 
 let ProtocolClient: (typeof import("../protocol"))["ProtocolClient"];
