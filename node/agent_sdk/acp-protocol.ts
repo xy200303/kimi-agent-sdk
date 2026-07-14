@@ -3,6 +3,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import type { ApprovalResponse, ContentPart, InitializeResult, RunResult, SlashCommandInfo, StreamEvent } from "./schema";
 import { SlashCommandInfoSchema } from "./schema";
 import { ProtocolError, TransportError } from "./errors";
+import { log } from "./logger";
 import { createEventChannel, type ClientOptions, type PromptStream } from "./protocol";
 
 const ACP_PROTOCOL_VERSION = 1;
@@ -73,6 +74,7 @@ export class AcpProtocolClient {
   private toolCalls = new Map<string, AcpToolCall>();
   private eventChannel: ReturnType<typeof createEventChannel<StreamEvent>> | null = null;
   private config: AcpSessionConfig | null = null;
+  private stderrBuffer = "";
 
   get sessionConfig(): AcpSessionConfig | null {
     return this.config;
@@ -101,8 +103,13 @@ export class AcpProtocolClient {
       buffer = lines.pop() ?? "";
       for (const line of lines) this.handleLine(line);
     });
-    this.process.on("exit", () => this.finishEvents());
-    this.process.on("error", (error) => this.finishEvents(error));
+    this.process.stderr?.on("data", (data) => {
+      const chunk = data.toString();
+      this.stderrBuffer += chunk;
+      log.protocol("acp stderr: %s", chunk.trim());
+    });
+    this.process.on("exit", (code) => this.handleProcessExit(code));
+    this.process.on("error", (error) => this.handleProcessError(error));
 
     const initialized = (await this.request("initialize", {
       protocolVersion: ACP_PROTOCOL_VERSION,
@@ -200,8 +207,8 @@ export class AcpProtocolClient {
   async stop(): Promise<void> {
     if (!this.process) return;
     this.process.kill("SIGTERM");
-    this.process = null;
     this.finishEvents();
+    this.cleanup();
   }
 
   private request(method: string, params: unknown): Promise<unknown> {
@@ -326,6 +333,34 @@ export class AcpProtocolClient {
     this.toolCalls.clear();
     this.eventChannel?.finish();
     this.eventChannel = null;
+  }
+
+  private handleProcessError(error: Error): void {
+    log.protocol("ACP process error: %s", error.message);
+    const stderr = this.stderrBuffer.trim();
+    const message = stderr ? `ACP process error: ${error.message}: ${stderr}` : `ACP process error: ${error.message}`;
+    this.finishEvents(new TransportError("PROCESS_CRASHED", message, error));
+    this.cleanup();
+  }
+
+  private handleProcessExit(code: number | null): void {
+    log.protocol("ACP process exited with code: %d", code);
+    if (code !== 0 && code !== null) {
+      const stderr = this.stderrBuffer.trim();
+      const message = stderr ? `ACP exited with code ${code}: ${stderr}` : `ACP exited with code ${code}`;
+      this.finishEvents(new TransportError("PROCESS_CRASHED", message));
+    } else {
+      this.finishEvents();
+    }
+    this.cleanup();
+  }
+
+  private cleanup(): void {
+    this.process?.removeAllListeners();
+    this.process?.stdout?.removeAllListeners();
+    this.process?.stderr?.removeAllListeners();
+    this.process = null;
+    this.stderrBuffer = "";
   }
 
   private async applySessionOptions(options: ClientOptions): Promise<void> {

@@ -512,6 +512,35 @@ describe("ProtocolClient", () => {
       await expect(stream.result).resolves.toEqual({ status: "finished" });
     });
 
+    it("captures stderr and reports it when the ACP process crashes", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { agentInfo: { name: "Kimi", version: "test" } } })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+
+      const stream = client.sendPrompt("Hi");
+
+      proc.stderr.push("panic: runtime error\n");
+      proc.stderr.push("at main.go:42\n");
+      proc.exitCode = 1;
+      proc.emit("exit", 1);
+
+      await expect(stream.result).rejects.toMatchObject({
+        code: "PROCESS_CRASHED",
+        message: expect.stringContaining("panic: runtime error"),
+      });
+    });
+
     it("rejects steer in ACP mode with a clear error", async () => {
       const proc = createMockProcess();
       proc.stdin.write.mockImplementation((line: string) => {
