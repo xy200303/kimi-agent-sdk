@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { VSCodeSettings } from "./config/vscode-settings";
 import { getCLIManager, FileManager } from "./managers";
 import { handlers, type HandlerContext, type BroadcastFn, type ReloadWebviewFn, type ShowLogsFn } from "./handlers";
-import { createSession, parseConfig, getModelThinkingMode, getModelById, type Session, type Turn } from "@moonshot-ai/kimi-agent-sdk";
+import { createSession, parseConfig, getModelThinkingMode, getModelById, type Session, type SessionInfo, type Turn } from "@moonshot-ai/kimi-agent-sdk";
 
 interface RpcMessage {
   id: string;
@@ -90,6 +90,7 @@ export class BridgeHandler {
       reloadWebview: () => this.reloadWebview(webviewId),
       showLogs: this.showLogs,
       getSession: (sessionId?: string) => this.getSession(webviewId, sessionId),
+      getActiveSessions: () => this.getActiveSessions(webviewId),
       getSessionId: () => this.fileManager.getSessionId(webviewId),
       getTurn: (sessionId?: string) => this.getTurn(webviewId, sessionId),
       setTurn: (sessionId: string, turn: Turn | null) => {
@@ -213,6 +214,22 @@ export class BridgeHandler {
   private getSession(webviewId: string, sessionId?: string): Session | undefined {
     const id = sessionId ?? this.fileManager.getSessionId(webviewId);
     return id ? this.sessions.get(webviewId)?.get(id) : undefined;
+  }
+
+  private getActiveSessions(webviewId: string): SessionInfo[] {
+    const now = Date.now();
+    const sessions = this.sessions.get(webviewId);
+    const turns = this.turns.get(webviewId);
+    if (!sessions || !turns) {
+      return [];
+    }
+
+    return [...turns.keys()].flatMap((sessionId) => {
+      const session = sessions.get(sessionId);
+      return session
+        ? [{ id: session.sessionId, workDir: session.workDir, contextFile: "", updatedAt: now, brief: "Running conversation" }]
+        : [];
+    });
   }
 
   private getTurn(webviewId: string, sessionId?: string): Turn | undefined {

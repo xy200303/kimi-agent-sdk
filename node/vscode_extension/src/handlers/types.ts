@@ -1,6 +1,6 @@
 import type * as vscode from "vscode";
 import type { FileManager } from "../managers/file.manager";
-import type { Session, Turn } from "@moonshot-ai/kimi-agent-sdk";
+import type { Session, SessionInfo, Turn } from "@moonshot-ai/kimi-agent-sdk";
 
 export type BroadcastFn = (event: string, data: unknown, webviewId?: string) => void;
 
@@ -20,6 +20,7 @@ export interface HandlerContext {
   showLogs: () => void;
 
   getSession: (sessionId?: string) => Session | undefined;
+  getActiveSessions: () => SessionInfo[];
   getSessionId: () => string | null;
   getTurn: (sessionId?: string) => Turn | undefined;
   setTurn: (sessionId: string, turn: Turn | null) => void;

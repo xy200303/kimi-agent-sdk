@@ -27,7 +27,22 @@ export const sessionHandlers: Record<string, Handler<any, any>> = {
   },
 
   [Methods.GetAllKimiSessions]: async (_, ctx) => {
-    return ctx.workspaceRoot ? listSessionsForWorkspace(ctx.workspaceRoot) : [];
+    if (!ctx.workspaceRoot) {
+      return [];
+    }
+
+    const persistedSessions = await listSessionsForWorkspace(ctx.workspaceRoot);
+    const sessionsById = new Map(persistedSessions.map((session) => [session.id, session]));
+
+    for (const activeSession of ctx.getActiveSessions()) {
+      const persisted = sessionsById.get(activeSession.id);
+      sessionsById.set(
+        activeSession.id,
+        persisted ? { ...persisted, updatedAt: Math.max(persisted.updatedAt, activeSession.updatedAt) } : activeSession,
+      );
+    }
+
+    return [...sessionsById.values()].sort((a, b) => b.updatedAt - a.updatedAt);
   },
 
   [Methods.GetRegisteredWorkDirs]: async (_, ctx) => {
