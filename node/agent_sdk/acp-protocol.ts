@@ -1,10 +1,25 @@
 import { spawn, type ChildProcess } from "node:child_process";
 
-import type { ApprovalResponse, ContentPart, InitializeResult, RunResult, StreamEvent } from "./schema";
+import type { ApprovalResponse, ContentPart, InitializeResult, RunResult, SlashCommandInfo, StreamEvent } from "./schema";
+import { SlashCommandInfoSchema } from "./schema";
 import { ProtocolError, TransportError } from "./errors";
 import { createEventChannel, type ClientOptions, type PromptStream } from "./protocol";
 
 const ACP_PROTOCOL_VERSION = 1;
+
+function parseSlashCommands(raw: unknown): SlashCommandInfo[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const commands: SlashCommandInfo[] = [];
+  for (const item of raw) {
+    const parsed = SlashCommandInfoSchema.safeParse(item);
+    if (parsed.success) {
+      commands.push(parsed.data);
+    }
+  }
+  return commands;
+}
 
 interface PendingRequest {
   resolve: (value: unknown) => void;
@@ -92,7 +107,11 @@ export class AcpProtocolClient {
     const initialized = (await this.request("initialize", {
       protocolVersion: ACP_PROTOCOL_VERSION,
       clientCapabilities: {},
-    })) as { agentInfo?: { name?: string; version?: string } };
+    })) as {
+      agentInfo?: { name?: string; version?: string };
+      slashCommands?: unknown[];
+      slash_commands?: unknown[];
+    };
     const session = (await this.request(
       options.resumeSession && options.sessionId ? "session/load" : "session/new",
       options.resumeSession && options.sessionId
@@ -110,7 +129,7 @@ export class AcpProtocolClient {
     return {
       protocol_version: `acp/${ACP_PROTOCOL_VERSION}`,
       server: { name: initialized.agentInfo?.name ?? "Kimi Code CLI", version: initialized.agentInfo?.version ?? "unknown" },
-      slash_commands: [],
+      slash_commands: parseSlashCommands(initialized.slashCommands ?? initialized.slash_commands),
     };
   }
 
