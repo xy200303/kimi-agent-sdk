@@ -57,11 +57,13 @@ export interface StreamError {
   phase: ErrorPhase;
 }
 
+type SessionEventMetadata = { _sessionId?: string; _sequence?: number };
+
 export type UIStreamEvent =
-  | { type: "session_start"; sessionId: string; model?: string; _sessionId?: string }
-  | { type: "stream_complete"; result: RunResult; _sessionId?: string }
-  | (StreamError & { _sessionId?: string })
-  | (StreamEvent & { _sessionId?: string });
+  | ({ type: "session_start"; sessionId: string; model?: string } & SessionEventMetadata)
+  | ({ type: "stream_complete"; result: RunResult } & SessionEventMetadata)
+  | (StreamError & SessionEventMetadata)
+  | (StreamEvent & SessionEventMetadata);
 
 export type CLIErrorType = "not_found" | "version_low" | "protocol_error";
 

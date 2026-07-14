@@ -102,7 +102,8 @@ export interface ChatState {
   sendMessage: (text: string) => void;
   retryLastMessage: () => void;
   processEvent: (event: UIStreamEvent) => void;
-  loadSession: (sessionId: string, events: UIStreamEvent[]) => Promise<void>;
+  receiveStreamEvent: (event: UIStreamEvent) => void;
+  loadSession: (sessionId: string, events: UIStreamEvent[], isRunning: boolean) => Promise<void>;
   startNewConversation: () => Promise<void>;
   abort: () => void;
   addDraftMedia: (id: string, dataUri?: string) => void;
@@ -122,12 +123,37 @@ export interface ChatState {
 }
 
 let handshakeTimer: ReturnType<typeof setTimeout> | null = null;
+const pendingEvents = new Map<string, UIStreamEvent[]>();
+const lastSequence = new Map<string, number>();
 
 function clearHandshakeTimer() {
   if (handshakeTimer) {
     clearTimeout(handshakeTimer);
     handshakeTimer = null;
   }
+}
+
+function isNewEvent(event: UIStreamEvent): boolean {
+  if (!event._sessionId || event._sequence === undefined) {
+    return true;
+  }
+  return event._sequence > (lastSequence.get(event._sessionId) ?? 0);
+}
+
+function rememberEvent(event: UIStreamEvent): void {
+  if (event._sessionId && event._sequence !== undefined) {
+    lastSequence.set(event._sessionId, event._sequence);
+  }
+}
+
+function takePendingEvents(sessionId: string): UIStreamEvent[] {
+  const queued = pendingEvents.get(sessionId) ?? [];
+  pendingEvents.delete(sessionId);
+  return queued;
+}
+
+function sortBySequence(events: UIStreamEvent[]): UIStreamEvent[] {
+  return [...events].sort((a, b) => (a._sequence ?? Number.MAX_SAFE_INTEGER) - (b._sequence ?? Number.MAX_SAFE_INTEGER));
 }
 
 function clearAllInlineErrors(draft: ChatState): void {
@@ -256,9 +282,29 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  loadSession: async (sessionId, events) => {
+  receiveStreamEvent: (event) => {
+    const currentSessionId = get().sessionId;
+    const eventSessionId = event._sessionId;
+    if (!eventSessionId || eventSessionId === currentSessionId || (!currentSessionId && event.type === "session_start")) {
+      if (isNewEvent(event)) {
+        rememberEvent(event);
+        get().processEvent(event);
+      }
+      return;
+    }
+
+    if (isNewEvent(event)) {
+      const events = pendingEvents.get(eventSessionId) ?? [];
+      events.push(event);
+      pendingEvents.set(eventSessionId, events);
+    }
+  },
+
+  loadSession: async (sessionId, events, isRunning) => {
     clearHandshakeTimer();
-    
+
+    // Keep all incoming events buffered until the complete snapshot is replayed.
+    await bridge.clearTrackedFiles();
     set({
       sessionId,
       messages: [],
@@ -275,31 +321,38 @@ export const useChatStore = create<ChatState>((set, get) => ({
       planMode: false,
     });
     useApprovalStore.getState().clearRequests();
-    bridge.clearTrackedFiles();
 
-    for (const event of events) {
-      get().processEvent(event);
+    lastSequence.delete(sessionId);
+    for (const event of sortBySequence([...events, ...takePendingEvents(sessionId)])) {
+      if (isNewEvent(event)) {
+        rememberEvent(event);
+        get().processEvent(event);
+      }
     }
 
-    // All steps are finished when loading from history
-    set(
-      produce((draft: ChatState) => {
-        for (const msg of draft.messages) {
-          if (msg.steps) {
-            for (const step of msg.steps) {
-              for (const item of step.items) {
-                if (item.type === "text" || item.type === "thinking") {
-                  item.finished = true;
+    if (!isRunning) {
+      // All steps are finished when loading a completed conversation.
+      set(
+        produce((draft: ChatState) => {
+          for (const msg of draft.messages) {
+            if (msg.steps) {
+              for (const step of msg.steps) {
+                for (const item of step.items) {
+                  if (item.type === "text" || item.type === "thinking") {
+                    item.finished = true;
+                  }
                 }
               }
             }
           }
-        }
-        draft.isStreaming = false;
-        draft.isCompacting = false;
-        draft.pendingQuestion = null;
-      }),
-    );
+          draft.isStreaming = false;
+          draft.isCompacting = false;
+          draft.pendingQuestion = null;
+        }),
+      );
+    } else {
+      set({ isStreaming: true, handshakeReceived: true });
+    }
     useApprovalStore.getState().clearRequests();
   },
 

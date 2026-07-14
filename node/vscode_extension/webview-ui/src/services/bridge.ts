@@ -221,7 +221,7 @@ class Bridge {
   }
 
   loadSessionHistory(sessionId: string) {
-    return this.call<UIStreamEvent[]>(Methods.LoadKimiSessionHistory, { kimiSessionId: sessionId });
+    return this.call<{ events: UIStreamEvent[]; isRunning: boolean }>(Methods.LoadKimiSessionHistory, { kimiSessionId: sessionId });
   }
 
   deleteSession(sessionId: string) {

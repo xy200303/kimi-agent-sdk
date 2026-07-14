@@ -166,8 +166,8 @@ function ForkButton({ turnIndex, className }: ForkButtonProps) {
       const result = await bridge.forkSession(sessionId, turnIndex);
       if (result) {
         // Load the forked session
-        const events = await bridge.loadSessionHistory(result.sessionId);
-        await loadSession(result.sessionId, events);
+        const snapshot = await bridge.loadSessionHistory(result.sessionId);
+        await loadSession(result.sessionId, snapshot.events, snapshot.isRunning);
       }
     } catch (err) {
       console.error("Fork session failed:", err);

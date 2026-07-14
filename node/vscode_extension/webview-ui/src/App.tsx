@@ -16,23 +16,12 @@ import type { UIStreamEvent, StreamError, ExtensionConfig } from "shared/types";
 import "./styles/index.css";
 
 function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
-  const { processEvent, startNewConversation, sessionId } = useChatStore();
+  const { receiveStreamEvent, startNewConversation } = useChatStore();
   const { setMCPServers, setExtensionConfig, extensionConfig } = useSettingsStore();
 
   useEffect(() => {
     return bridge.on(Events.StreamEvent, (event: UIStreamEvent) => {
-      if ("_sessionId" in event && event._sessionId) {
-        if (sessionId && event._sessionId !== sessionId) {
-          console.log("Ignored stream event from another session:", event._sessionId);
-          return;
-        }
-        // A blank conversation may only adopt the session that it starts itself.
-        if (!sessionId && event.type !== "session_start") {
-          console.log("Ignored background stream event while starting a conversation:", event._sessionId);
-          return;
-        }
-      }
-      processEvent(event);
+      receiveStreamEvent(event);
       if (event.type === "error") {
         const streamError = event as StreamError;
         if (isPreflightError(streamError.code || "UNKNOWN")) {
@@ -40,7 +29,7 @@ function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
         }
       }
     });
-  }, [processEvent, sessionId]);
+  }, [receiveStreamEvent]);
 
   useEffect(() => {
     const unsubs = [

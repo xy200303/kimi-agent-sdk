@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
 import { VSCodeSettings } from "./config/vscode-settings";
-import { getCLIManager, FileManager } from "./managers";
+import { getCLIManager, ConversationStore, FileManager } from "./managers";
 import { handlers, type HandlerContext, type BroadcastFn, type ReloadWebviewFn, type ShowLogsFn } from "./handlers";
-import { createSession, parseConfig, getModelThinkingMode, getModelById, type Session, type SessionInfo, type Turn } from "@moonshot-ai/kimi-agent-sdk";
+import { createSession, parseConfig, getModelThinkingMode, getModelById, type Session, type Turn } from "@moonshot-ai/kimi-agent-sdk";
+import type { UIStreamEvent } from "shared/types";
 
 interface RpcMessage {
   id: string;
@@ -21,14 +22,17 @@ export class BridgeHandler {
   private turns = new Map<string, Map<string, Turn>>();
   private customWorkDirs = new Map<string, string>(); // webviewId -> custom workDir
   private fileManager: FileManager;
+  private conversationStore: ConversationStore;
 
   constructor(
     private broadcast: BroadcastFn,
     private workspaceState: vscode.Memento,
     private reloadWebview: ReloadWebviewFn,
     private showLogs: ShowLogsFn,
+    storagePath: string,
   ) {
     this.fileManager = new FileManager(() => this.workspaceRoot, broadcast);
+    this.conversationStore = new ConversationStore(storagePath);
   }
 
   async handle(msg: RpcMessage, webviewId: string): Promise<RpcResult> {
@@ -87,10 +91,10 @@ export class BridgeHandler {
       requireWorkDir: () => this.requireWorkDir(webviewId),
       broadcast: this.broadcast,
       fileManager: this.fileManager,
+      conversationStore: this.conversationStore,
       reloadWebview: () => this.reloadWebview(webviewId),
       showLogs: this.showLogs,
       getSession: (sessionId?: string) => this.getSession(webviewId, sessionId),
-      getActiveSessions: () => this.getActiveSessions(webviewId),
       getSessionId: () => this.fileManager.getSessionId(webviewId),
       getTurn: (sessionId?: string) => this.getTurn(webviewId, sessionId),
       setTurn: (sessionId: string, turn: Turn | null) => {
@@ -101,6 +105,7 @@ export class BridgeHandler {
           turns.delete(sessionId);
         }
       },
+      recordSessionEvent: (sessionId: string, event: UIStreamEvent) => this.conversationStore.append(sessionId, event),
       getOrCreateSession: (model, thinking, sessionId) => this.getOrCreateSession(webviewId, model, thinking, sessionId),
       closeSession: (sessionId?: string) => this.closeSession(webviewId, sessionId),
       saveAllDirty: () => this.saveAllDirty(),
@@ -193,6 +198,7 @@ export class BridgeHandler {
     }
     this.sessions.clear();
     this.turns.clear();
+    await this.conversationStore.flush();
   }
 
   private getSessions(webviewId: string): Map<string, Session> {
@@ -218,22 +224,6 @@ export class BridgeHandler {
     return id ? this.sessions.get(webviewId)?.get(id) : undefined;
   }
 
-  private getActiveSessions(webviewId: string): SessionInfo[] {
-    const now = Date.now();
-    const sessions = this.sessions.get(webviewId);
-    const turns = this.turns.get(webviewId);
-    if (!sessions || !turns) {
-      return [];
-    }
-
-    return [...turns.keys()].flatMap((sessionId) => {
-      const session = sessions.get(sessionId);
-      return session
-        ? [{ id: session.sessionId, workDir: session.workDir, contextFile: "", updatedAt: now, brief: "Running conversation" }]
-        : [];
-    });
-  }
-
   private getTurn(webviewId: string, sessionId?: string): Turn | undefined {
     const id = sessionId ?? this.fileManager.getSessionId(webviewId);
     return id ? this.turns.get(webviewId)?.get(id) : undefined;
@@ -241,7 +231,9 @@ export class BridgeHandler {
 
   private async closeSession(webviewId: string, sessionId?: string): Promise<void> {
     const id = sessionId ?? this.fileManager.getSessionId(webviewId);
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     const sessions = this.sessions.get(webviewId);
     const session = sessions?.get(id);
     if (session) {
@@ -253,7 +245,9 @@ export class BridgeHandler {
 
   private async closeSessions(webviewId: string): Promise<void> {
     const sessions = this.sessions.get(webviewId);
-    if (!sessions) return;
+    if (!sessions) {
+      return;
+    }
     await Promise.all([...sessions.values()].map((session) => session.close()));
   }
 }

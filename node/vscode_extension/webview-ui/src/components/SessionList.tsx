@@ -108,7 +108,10 @@ export function SessionList({ onClose }: SessionListProps) {
 
   const handleSelect = async (session: SessionInfo) => {
     console.log("[SessionList] Loading session:", session.id);
-    
+    if (session.id === sessionId) {
+      onClose();
+      return;
+    }
     await doLoadSession(session);
   };
 
@@ -123,8 +126,8 @@ export function SessionList({ onClose }: SessionListProps) {
           setCurrentWorkDir(newWorkDir);
         }
       }
-      const events = await bridge.loadSessionHistory(session.id);
-      await loadSession(session.id, events);
+      const snapshot = await bridge.loadSessionHistory(session.id);
+      await loadSession(session.id, snapshot.events, snapshot.isRunning);
       onClose();
     } catch (error) {
       console.error("[SessionList] Failed to load session:", error);

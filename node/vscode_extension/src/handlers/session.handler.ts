@@ -1,15 +1,21 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
 import { Methods } from "../../shared/bridge";
-import { listSessions, listSessionsForWorkspace, getRegisteredWorkDirs, parseSessionEvents, deleteSession, forkSession } from "@moonshot-ai/kimi-agent-sdk";
+import { getRegisteredWorkDirs, forkSession } from "@moonshot-ai/kimi-agent-sdk";
 import { BaselineManager } from "../managers";
-import type { SessionInfo, StreamEvent, ForkSessionResult } from "@moonshot-ai/kimi-agent-sdk";
+import type { SessionInfo, ForkSessionResult } from "@moonshot-ai/kimi-agent-sdk";
 import type { Handler } from "./types";
+import type { UIStreamEvent } from "shared/types";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface LoadHistoryParams {
   kimiSessionId: string;
+}
+
+interface SessionHistorySnapshot {
+  events: UIStreamEvent[];
+  isRunning: boolean;
 }
 
 interface DeleteSessionParams {
@@ -23,7 +29,7 @@ interface ForkSessionParams {
 
 export const sessionHandlers: Record<string, Handler<any, any>> = {
   [Methods.GetKimiSessions]: async (_, ctx) => {
-    return ctx.workDir ? listSessions(ctx.workDir) : [];
+    return ctx.workDir ? ctx.conversationStore.list(ctx.workDir) : [];
   },
 
   [Methods.GetAllKimiSessions]: async (_, ctx) => {
@@ -31,18 +37,7 @@ export const sessionHandlers: Record<string, Handler<any, any>> = {
       return [];
     }
 
-    const persistedSessions = await listSessionsForWorkspace(ctx.workspaceRoot);
-    const sessionsById = new Map(persistedSessions.map((session) => [session.id, session]));
-
-    for (const activeSession of ctx.getActiveSessions()) {
-      const persisted = sessionsById.get(activeSession.id);
-      sessionsById.set(
-        activeSession.id,
-        persisted ? { ...persisted, updatedAt: Math.max(persisted.updatedAt, activeSession.updatedAt) } : activeSession,
-      );
-    }
-
-    return [...sessionsById.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+    return ctx.conversationStore.list(ctx.workspaceRoot);
   },
 
   [Methods.GetRegisteredWorkDirs]: async (_, ctx) => {
@@ -128,22 +123,26 @@ export const sessionHandlers: Record<string, Handler<any, any>> = {
     return { ok: true, workDir: selected };
   },
 
-  [Methods.LoadKimiSessionHistory]: async (params: LoadHistoryParams, ctx): Promise<StreamEvent[]> => {
+  [Methods.LoadKimiSessionHistory]: async (params: LoadHistoryParams, ctx): Promise<SessionHistorySnapshot> => {
     if (!ctx.workDir || !UUID_REGEX.test(params.kimiSessionId)) {
-      return [];
+      return { events: [], isRunning: false };
     }
 
     ctx.fileManager.setSessionId(ctx.webviewId, params.kimiSessionId);
     BaselineManager.initSession(ctx.workDir, params.kimiSessionId);
 
-    return parseSessionEvents(ctx.workDir, params.kimiSessionId);
+    return {
+      events: await ctx.conversationStore.getEvents(params.kimiSessionId),
+      isRunning: ctx.getTurn(params.kimiSessionId) !== undefined,
+    };
   },
 
   [Methods.DeleteKimiSession]: async (params: DeleteSessionParams, ctx): Promise<{ ok: boolean }> => {
     if (!ctx.workDir || !UUID_REGEX.test(params.sessionId)) {
       return { ok: false };
     }
-    return { ok: await deleteSession(ctx.workDir, params.sessionId) };
+    await ctx.closeSession(params.sessionId);
+    return { ok: await ctx.conversationStore.delete(params.sessionId) };
   },
 
   [Methods.ForkKimiSession]: async (params: ForkSessionParams, ctx): Promise<ForkSessionResult | null> => {

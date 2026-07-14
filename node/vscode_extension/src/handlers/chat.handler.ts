@@ -7,7 +7,7 @@ import { BaselineManager } from "../managers";
 import { getErrorCode, CliError } from "@moonshot-ai/kimi-agent-sdk";
 import type { ContentPart, ApprovalResponse, RunResult } from "@moonshot-ai/kimi-agent-sdk";
 import type { Handler } from "./types";
-import type { ErrorPhase } from "../../shared/types";
+import type { ErrorPhase, UIStreamEvent } from "../../shared/types";
 import { classifyError, getUserMessage } from "shared/errors";
 
 interface StreamChatParams {
@@ -101,6 +101,11 @@ function prependSystemContext(content: string | ContentPart[], ctx: string): str
   return [{ type: "text", text: ctx }, ...content];
 }
 
+function conversationBrief(content: string | ContentPart[]): string {
+  const text = typeof content === "string" ? content : content.find((part) => part.type === "text")?.text ?? "";
+  return text.replace(/\s+/g, " ").trim().slice(0, 160) || "Untitled conversation";
+}
+
 function saveBaselineForPath(filePath: string, workDir: string, sessionId: string): boolean {
   const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(workDir, filePath);
   const relativePath = path.relative(workDir, absolutePath);
@@ -167,10 +172,23 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
   const workDir = ctx.workDir;
   const sessionId = session.sessionId;
 
+  await ctx.conversationStore.create({
+    id: sessionId,
+    workDir,
+    contextFile: "",
+    updatedAt: Date.now(),
+    brief: conversationBrief(params.content),
+  });
+
+  const emit = (event: UIStreamEvent) => {
+    const recorded = ctx.recordSessionEvent(sessionId, event);
+    ctx.broadcast(Events.StreamEvent, recorded, ctx.webviewId);
+  };
+
   // Track pending tool calls for baseline saving
   BaselineManager.initSession(workDir, sessionId);
 
-  ctx.broadcast(Events.StreamEvent, { type: "session_start", sessionId, model: session.model, _sessionId: sessionId }, ctx.webviewId);
+  emit({ type: "session_start", sessionId, model: session.model });
 
   const systemContext = buildSystemContext(sessionId);
   const contentWithContext = prependSystemContext(params.content, systemContext);
@@ -229,12 +247,12 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
         }
       }
 
-      ctx.broadcast(Events.StreamEvent, { ...event, _sessionId: sessionId }, ctx.webviewId);
+      emit(event);
     }
 
     result = await turn.result;
 
-    ctx.broadcast(Events.StreamEvent, { type: "stream_complete", result, _sessionId: sessionId }, ctx.webviewId);
+    emit({ type: "stream_complete", result });
     ctx.setTurn(sessionId, null);
 
     return { done: true };
@@ -247,18 +265,13 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
     const detail = err instanceof CliError && err.rawResponse ? err.rawResponse : err instanceof Error ? err.message : String(err);
     const message = getUserMessage(code, err instanceof Error ? err.message : String(err));
 
-    ctx.broadcast(
-      Events.StreamEvent,
-      {
+    emit({
         type: "error",
         code,
         message,
         detail,
         phase,
-        _sessionId: sessionId,
-      },
-      ctx.webviewId,
-    );
+      });
 
     return { done: false };
   }
