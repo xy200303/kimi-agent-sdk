@@ -117,9 +117,13 @@ function CLIErrorContent({ cliResult, errorMessage: fallbackErrorMessage }: { cl
         <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <IconTerminal2 className="size-4" />
-            <span>Or install CLI manually:</span>
+            <span>Build Spec Kimi CLI locally:</span>
           </div>
-          <code className="block text-xs bg-background rounded px-3 py-2 font-mono select-all">curl -LsSf https://cdn.kimi.com/binaries/kimi-cli/install.sh | bash</code>
+          <code className="block text-xs bg-background rounded px-3 py-2 font-mono select-all">cd path/to/spec-kimi && pnpm install && pnpm run build</code>
+          <p className="text-xs text-muted-foreground">
+            Then add <code className="bg-muted px-1 rounded">spec-kimi</code> to PATH, or set{" "}
+            <code className="bg-muted px-1 rounded">kimi.executablePath</code> to the built binary.
+          </p>
         </div>
       </>
     );
@@ -142,9 +146,13 @@ function CLIErrorContent({ cliResult, errorMessage: fallbackErrorMessage }: { cl
       <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <IconTerminal2 className="size-4" />
-          <span>Install CLI:</span>
+          <span>Build Spec Kimi CLI locally:</span>
         </div>
-        <code className="block text-xs bg-background rounded px-3 py-2 font-mono select-all">curl -LsSf https://cdn.kimi.com/binaries/kimi-cli/install.sh | bash</code>
+        <code className="block text-xs bg-background rounded px-3 py-2 font-mono select-all">cd path/to/spec-kimi && pnpm install && pnpm run build</code>
+        <p className="text-xs text-muted-foreground">
+          Then add <code className="bg-muted px-1 rounded">spec-kimi</code> to PATH, or set{" "}
+          <code className="bg-muted px-1 rounded">kimi.executablePath</code> to the built binary.
+        </p>
       </div>
 
       <p className="text-xs text-muted-foreground/70">
