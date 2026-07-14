@@ -188,7 +188,7 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
   // Track pending tool calls for baseline saving
   BaselineManager.initSession(workDir, sessionId);
 
-  emit({ type: "session_start", sessionId, model: session.model });
+  emit({ type: "session_start", sessionId, model: session.model, slashCommands: session.slashCommands });
 
   const systemContext = buildSystemContext(sessionId);
   const contentWithContext = prependSystemContext(params.content, systemContext);

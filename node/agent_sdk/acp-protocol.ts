@@ -76,6 +76,9 @@ export class AcpProtocolClient {
   private eventChannel: ReturnType<typeof createEventChannel<StreamEvent>> | null = null;
   private config: AcpSessionConfig | null = null;
   private stderrBuffer = "";
+  private slashCommands: SlashCommandInfo[] = [];
+  private slashCommandsReadyResolve: ((commands: SlashCommandInfo[]) => void) | null = null;
+  private slashCommandsReadyPromise: Promise<SlashCommandInfo[]> | null = null;
 
   get sessionConfig(): AcpSessionConfig | null {
     return this.config;
@@ -134,10 +137,23 @@ export class AcpProtocolClient {
     this.config = { sessionId: toStorageSessionId(acpSessionId), configOptions: session.configOptions ?? [] };
     await this.applySessionOptions(options);
 
+    // ACP advertises slash commands via an asynchronous available_commands_update
+    // notification after session/new (or session/load). Wait briefly for it so
+    // InitializeResult.slash_commands is populated on the first session.
+    this.slashCommandsReadyPromise = new Promise((resolve) => {
+      this.slashCommandsReadyResolve = resolve;
+    });
+    const slashCommandsFromUpdate = await Promise.race([
+      this.slashCommandsReadyPromise,
+      new Promise<SlashCommandInfo[]>((resolve) => setTimeout(() => resolve(this.slashCommands), 200)),
+    ]);
+
     return {
       protocol_version: `acp/${ACP_PROTOCOL_VERSION}`,
       server: { name: initialized.agentInfo?.name ?? "Kimi Code CLI", version: initialized.agentInfo?.version ?? "unknown" },
-      slash_commands: parseSlashCommands(initialized.slashCommands ?? initialized.slash_commands),
+      slash_commands: slashCommandsFromUpdate.length > 0
+        ? slashCommandsFromUpdate
+        : parseSlashCommands(initialized.slashCommands ?? initialized.slash_commands),
     };
   }
 
@@ -255,7 +271,18 @@ export class AcpProtocolClient {
 
   private handleUpdate(params: any): void {
     const update = params?.update;
-    if (!update || !this.eventChannel) return;
+    if (!update) return;
+
+    if (update.sessionUpdate === "available_commands_update") {
+      const commands = parseSlashCommands(update.availableCommands ?? update.available_commands);
+      this.slashCommands = commands;
+      log.protocol("ACP available_commands_update received: %d commands", commands.length);
+      this.slashCommandsReadyResolve?.(commands);
+      this.slashCommandsReadyResolve = null;
+      return;
+    }
+
+    if (!this.eventChannel) return;
     for (const event of mapAcpUpdate(update, this.toolCalls)) this.eventChannel.push(event);
   }
 
@@ -441,6 +468,12 @@ export function mapAcpUpdate(update: any, toolCalls = new Map<string, AcpToolCal
 
   if (update.sessionUpdate === "plan") {
     return [{ type: "StatusUpdate", payload: { plan_mode: true } }];
+  }
+
+  if (update.sessionUpdate === "available_commands_update") {
+    // Handled directly in AcpProtocolClient.handleUpdate so the command list
+    // is available before start() resolves. It does not map to a stream event.
+    return [];
   }
   return [];
 }

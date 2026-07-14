@@ -398,6 +398,45 @@ describe("ProtocolClient", () => {
       ]);
     });
 
+    it("collects slash commands from the ACP available_commands_update notification", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { agentInfo: { name: "Kimi", version: "test" } } })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+          // ACP pushes available_commands_update asynchronously after session/new.
+          setTimeout(() => {
+            proc.stdout.push(`${JSON.stringify({
+              jsonrpc: "2.0",
+              method: "session/update",
+              params: {
+                sessionId: "session-1",
+                update: {
+                  sessionUpdate: "available_commands_update",
+                  availableCommands: [
+                    { name: "commit", description: "Generate a commit message" },
+                    { name: "test", description: "Run tests" },
+                  ],
+                },
+              },
+            })}\n`);
+          }, 5);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      const initResult = await client.start({ workDir: "/tmp", executablePath: "kimi" });
+
+      expect(initResult.slash_commands).toEqual([
+        { name: "commit", description: "Generate a commit message", aliases: [] },
+        { name: "test", description: "Run tests", aliases: [] },
+      ]);
+    });
+
     it("falls back to snake_case slash_commands in the ACP initialize response", async () => {
       const proc = createMockProcess();
       proc.stdin.write.mockImplementation((line: string) => {

@@ -1,5 +1,6 @@
 import { bridge } from "@/services";
 import { useApprovalStore } from "./approval.store";
+import { useSettingsStore } from "./settings.store";
 import { isPreflightError, isUserInterrupt } from "shared/errors";
 import type { ChatMessage, UIStep, UIStepItem, ChatState, TokenUsage } from "./chat.store";
 import type { ContentPart, ToolCall, ToolResult, TurnBegin, SubagentEvent, ApprovalRequestPayload, DiffBlock, RunResult, QuestionRequest } from "@moonshot-ai/kimi-agent-sdk/schema";
@@ -287,9 +288,12 @@ function handleRuntimeError(draft: ChatState, code: string, message: string, det
 
 const eventHandlers: Record<string, EventHandler> = {
   // UI 事件 (Bridge 层)
-  session_start: (draft, payload: { sessionId: string; model?: string }) => {
+  session_start: (draft, payload: { sessionId: string; model?: string; slashCommands?: import("@moonshot-ai/kimi-agent-sdk").SlashCommandInfo[] }) => {
     if (payload.sessionId) {
       draft.sessionId = payload.sessionId;
+    }
+    if (payload.slashCommands && payload.slashCommands.length > 0) {
+      useSettingsStore.getState().setWireSlashCommands(payload.slashCommands);
     }
   },
 

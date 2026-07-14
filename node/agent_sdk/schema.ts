@@ -248,7 +248,7 @@ export type ServerInfo = z.infer<typeof ServerInfoSchema>;
 export const SlashCommandInfoSchema = z.object({
   name: z.string(),
   description: z.string(),
-  aliases: z.array(z.string()),
+  aliases: z.array(z.string()).default([]),
 });
 export type SlashCommandInfo = z.infer<typeof SlashCommandInfoSchema>;
 
