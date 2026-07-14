@@ -146,7 +146,7 @@ describe("createSession", () => {
     expect(session.model).toBeUndefined();
     expect(session.thinking).toBe(false);
     expect(session.yoloMode).toBe(false);
-    expect(session.executable).toBe("kimi");
+    expect(session.executable).toBe("spec-kimi");
     expect(session.env).toEqual({});
   });
 });
@@ -387,7 +387,7 @@ describe("Session.prompt()", () => {
         model: "kimi-k2",
         thinking: true,
         yoloMode: false,
-        executablePath: "kimi",
+        executablePath: "spec-kimi",
       }),
     );
   });

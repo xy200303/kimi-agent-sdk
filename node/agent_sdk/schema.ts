@@ -731,7 +731,7 @@ export interface ModelConfig {
   capabilities: string[];
 }
 
-// Kimi configuration
+// Spec Kimi configuration
 export interface KimiConfig {
   // Default model ID
   defaultModel: string | null;
@@ -777,7 +777,7 @@ export interface SessionOptions {
   thinking?: boolean;
   // Auto-approve all operations, defaults to false
   yoloMode?: boolean;
-  // CLI executable path, defaults to "kimi"
+  // CLI executable path, defaults to "spec-kimi"
   executable?: string;
   // Environment variables passed to CLI
   env?: Record<string, string>;

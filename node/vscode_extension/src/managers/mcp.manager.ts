@@ -136,16 +136,16 @@ export const MCPManager = {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `Kimi: Authenticating "${name}"...`,
+        title: `Spec Kimi: Authenticating "${name}"...`,
         cancellable: false,
       },
       async () => {
         try {
           await authMCP(name, options);
-          vscode.window.showInformationMessage(`Kimi: OAuth completed for "${name}"`);
+          vscode.window.showInformationMessage(`Spec Kimi: OAuth completed for "${name}"`);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          vscode.window.showErrorMessage(`Kimi: OAuth failed for "${name}": ${msg}`);
+          vscode.window.showErrorMessage(`Spec Kimi: OAuth failed for "${name}": ${msg}`);
           throw err;
         }
       },
@@ -157,16 +157,16 @@ export const MCPManager = {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
-        title: `Kimi: Resetting auth for "${name}"...`,
+        title: `Spec Kimi: Resetting auth for "${name}"...`,
         cancellable: false,
       },
       async () => {
         try {
           await resetAuthMCP(name, options);
-          vscode.window.showInformationMessage(`Kimi: Auth reset for "${name}"`);
+          vscode.window.showInformationMessage(`Spec Kimi: Auth reset for "${name}"`);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          vscode.window.showErrorMessage(`Kimi: Reset auth failed for "${name}": ${msg}`);
+          vscode.window.showErrorMessage(`Spec Kimi: Reset auth failed for "${name}": ${msg}`);
           throw err;
         }
       },
@@ -174,7 +174,7 @@ export const MCPManager = {
   },
 
   async test(name: string): Promise<MCPTestResult> {
-    vscode.window.showInformationMessage(`Kimi: Testing MCP server "${name}"...`);
+    vscode.window.showInformationMessage(`Spec Kimi: Testing MCP server "${name}"...`);
     return await testMCP(name, getCliOptions());
   },
 };

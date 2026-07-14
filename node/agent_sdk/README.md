@@ -1,6 +1,6 @@
 # @moonshot-ai/kimi-agent-sdk
 
-TypeScript SDK for interacting with Kimi Code CLI via wire protocol.
+TypeScript SDK for interacting with Spec Kimi CLI via wire protocol.
 
 ## Installation
 
@@ -49,7 +49,7 @@ interface SessionOptions {
   model?: string;            // Model identifier
   thinking?: boolean;        // Enable thinking mode
   yoloMode?: boolean;        // Auto-approve all tool calls
-  executable?: string;       // Path to CLI executable (default: "kimi")
+  executable?: string;       // Path to CLI executable (default: "spec-kimi")
   env?: Record<string, string>; // Environment variables
 }
 ```
@@ -306,7 +306,7 @@ interface MCPServerConfig {
 
 #### `KimiPaths`
 
-Utility object for Kimi CLI file paths.
+Utility object for Spec Kimi CLI file paths.
 
 ```typescript
 const KimiPaths = {

@@ -34,12 +34,12 @@ function ManualSetupHint() {
             <li>
               Install CLI from{" "}
               <a href="https://kimi.com/code" target="_blank" className="underline hover:text-foreground">
-                kimi.com/code
+                Spec Kimi
               </a>
             </li>
             <li>
               {" "}
-              Run <code className="bg-muted px-1 rounded">kimi</code> in terminal{" "}
+              Run <code className="bg-muted px-1 rounded">spec-kimi</code> in terminal{" "}
             </li>
             <li>
               {" "}
@@ -181,7 +181,7 @@ function NoModelsContent({ onRefresh, onBackToLogin }: { onRefresh?: () => void;
           <p className="text-xs font-medium text-foreground">Option 1: Subscribe to Spec Kimi (Recommended)</p>
           <a href="https://kimi.com/code" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs text-foreground hover:underline">
             <IconExternalLink className="size-4" />
-            kimi.com/code
+            Spec Kimi
           </a>
         </div>
 

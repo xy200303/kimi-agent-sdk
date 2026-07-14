@@ -22,7 +22,7 @@ const openFolder: Handler<void, { ok: boolean }> = async () => {
 
 const runCLI: Handler<{ args?: string[] }, { ok: boolean }> = async ({ args }) => {
   const cliPath = getCLIManager().getExecutablePath();
-  const terminal = vscode.window.createTerminal({ name: "Kimi" });
+  const terminal = vscode.window.createTerminal({ name: "Spec Kimi" });
   terminal.show();
   // Build command with quoted path and escaped args
   const quotedPath = `"${cliPath}"`;

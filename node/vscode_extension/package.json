@@ -2,8 +2,8 @@
   "name": "spec-kimi",
   "publisher": "moonshot-ai",
   "displayName": "Spec Kimi (Local Fixes)",
-  "description": "Spec-driven Kimi Code fork for VS Code",
-  "version": "0.5.11-local.18",
+  "description": "Spec-driven Spec Kimi fork for VS Code",
+  "version": "0.5.11-local.19",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -147,7 +147,7 @@
       },
       {
         "command": "kimi.resetKimi",
-        "title": "Spec Kimi: Reset Kimi (in case of any issues/no response)",
+        "title": "Spec Kimi: Reset Spec Kimi (in case of any issues/no response)",
         "icon": "$(refresh)"
       },
       {

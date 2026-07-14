@@ -27,7 +27,7 @@ interface RunOptions {
   onLine?: (line: string) => void;
 }
 
-const DEFAULT_EXECUTABLE = "kimi";
+const DEFAULT_EXECUTABLE = "spec-kimi";
 
 const handleError = (err: unknown): LoginResult => ({
   success: false,

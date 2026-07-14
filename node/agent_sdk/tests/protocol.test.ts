@@ -289,7 +289,7 @@ describe("ProtocolClient", () => {
         thinking: false,
       });
 
-      expect(mockSpawn).toHaveBeenCalledWith("kimi", expect.arrayContaining(["--no-thinking"]), expect.anything());
+      expect(mockSpawn).toHaveBeenCalledWith("spec-kimi", expect.arrayContaining(["--no-thinking"]), expect.anything());
     });
 
     it("builds args with --skills-dir when skillsDir is provided", () => {
@@ -303,7 +303,7 @@ describe("ProtocolClient", () => {
         skillsDir: "/path/to/my-skills",
       });
 
-      expect(mockSpawn).toHaveBeenCalledWith("kimi", expect.arrayContaining(["--skills-dir", "/path/to/my-skills"]), expect.anything());
+      expect(mockSpawn).toHaveBeenCalledWith("spec-kimi", expect.arrayContaining(["--skills-dir", "/path/to/my-skills"]), expect.anything());
     });
 
     it("does not include --skills-dir when skillsDir is not provided", () => {

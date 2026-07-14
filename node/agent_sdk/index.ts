@@ -1,5 +1,5 @@
 /**
- * Kimi Code Agent SDK - TypeScript SDK for Kimi Code Wire protocol.
+ * Spec Kimi Agent SDK - TypeScript SDK for Spec Kimi Wire protocol.
  *
  * @example Quick Start
  * ```typescript

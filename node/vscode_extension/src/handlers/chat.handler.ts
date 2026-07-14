@@ -156,7 +156,7 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
       },
       ctx.webviewId,
     );
-    vscode.window.showWarningMessage("Kimi: Please open a folder first.", "Open Folder").then((a) => {
+    vscode.window.showWarningMessage("Spec Kimi: Please open a folder first.", "Open Folder").then((a) => {
       if (a) {
         vscode.commands.executeCommand("vscode.openFolder");
       }

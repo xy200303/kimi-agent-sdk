@@ -89,7 +89,7 @@ export class AcpProtocolClient {
   }
 
   async start(options: ClientOptions): Promise<InitializeResult> {
-    const executable = options.executablePath ?? "kimi";
+    const executable = options.executablePath ?? "spec-kimi";
     this.process = spawn(executable, ["acp"], {
       cwd: options.workDir,
       env: { ...process.env, ...options.environmentVariables },
@@ -151,7 +151,7 @@ export class AcpProtocolClient {
 
     return {
       protocol_version: `acp/${ACP_PROTOCOL_VERSION}`,
-      server: { name: initialized.agentInfo?.name ?? "Kimi Code CLI", version: initialized.agentInfo?.version ?? "unknown" },
+      server: { name: initialized.agentInfo?.name ?? "Spec Kimi CLI", version: initialized.agentInfo?.version ?? "unknown" },
       slash_commands: slashCommandsFromUpdate.length > 0
         ? slashCommandsFromUpdate
         : parseSlashCommands(initialized.slashCommands ?? initialized.slash_commands),
@@ -322,7 +322,7 @@ export class AcpProtocolClient {
   }
 
   private toRunResult(response: AcpPromptResponse | undefined): RunResult {
-    // Older Kimi Code ACP builds may acknowledge session/prompt with an
+    // Older Spec Kimi ACP builds may acknowledge session/prompt with an
     // omitted result. Treat that as an unknown terminal reason instead of
     // dereferencing it and masking the actual unfinished-turn diagnostic.
     const stopReason = response?.stopReason;
@@ -330,7 +330,7 @@ export class AcpProtocolClient {
       .filter((tool) => tool.status !== "completed" && tool.status !== "failed")
       .map((tool) => tool.toolCallId);
 
-    console.warn("[kimi-code] ACP prompt completed", {
+    console.warn("[spec-kimi] ACP prompt completed", {
       sessionId: this.sessionId,
       stopReason,
       pendingToolCallIds,
@@ -347,7 +347,7 @@ export class AcpProtocolClient {
     if (pendingToolCallIds.length > 0) {
       throw new ProtocolError(
         "INCOMPLETE_TURN",
-        `Kimi Code ended the ACP turn before completing tool calls: ${pendingToolCallIds.join(", ")}`,
+        `Spec Kimi ended the ACP turn before completing tool calls: ${pendingToolCallIds.join(", ")}`,
         { sessionId: this.sessionId ?? undefined, stopReason, pendingToolCallIds },
       );
     }

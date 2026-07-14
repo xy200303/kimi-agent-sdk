@@ -193,7 +193,7 @@ const openFileDiff: Handler<FilePathParams, { ok: boolean }> = async (params, ct
     path: "/" + relativePath,
     query: new URLSearchParams({ workDir, sessionId }).toString(),
   });
-  await vscode.commands.executeCommand("vscode.diff", baselineUri, currentUri, `${path.basename(relativePath)} (changes from Kimi)`);
+  await vscode.commands.executeCommand("vscode.diff", baselineUri, currentUri, `${path.basename(relativePath)} (changes from Spec Kimi)`);
   return { ok: true };
 };
 

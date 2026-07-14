@@ -158,7 +158,7 @@ export class ProtocolClient {
       throw new TransportError("ALREADY_STARTED", "Client already started");
     }
 
-    const executable = options.executablePath ?? "kimi";
+    const executable = options.executablePath ?? "spec-kimi";
 
     if (supportsAcp(executable, options.workDir, options.environmentVariables)) {
       this.acpClient = new AcpProtocolClient();

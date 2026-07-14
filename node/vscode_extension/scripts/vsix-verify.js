@@ -67,7 +67,7 @@ function verifyVsixFiles(rootDir, targets = TARGETS) {
         }
       }
       if (entries.some((entry) => entry.startsWith("extension/bin/kimi/"))) {
-        throw new Error("VSIX must not include a bundled Kimi CLI");
+        throw new Error("VSIX must not include a bundled Spec Kimi CLI");
       }
 
       lines.push(`${file}: extension ${bundledPackage.version}, ${target}, extension.js/webview.js OK, no bundled CLI`);

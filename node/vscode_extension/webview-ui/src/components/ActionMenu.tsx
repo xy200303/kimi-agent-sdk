@@ -118,7 +118,7 @@ export function ActionMenu({ className, onAuthAction }: ActionMenuProps) {
           </MenuItem>
           <MenuItem onClick={handleReset}>
             <IconRefresh className="size-4 text-muted-foreground" />
-            <span className="flex-1">Reset Kimi</span>
+            <span className="flex-1">Reset Spec Kimi</span>
           </MenuItem>
         </MenuSection>
 

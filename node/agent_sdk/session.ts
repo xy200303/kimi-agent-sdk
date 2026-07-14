@@ -33,7 +33,7 @@ export interface Turn {
   readonly result: Promise<RunResult>;
 }
 
-/** Session interface, represents a persistent connection with Kimi Code */
+/** Session interface, represents a persistent connection with Spec Kimi */
 export interface Session {
   /** Session ID */
   readonly sessionId: string;
@@ -185,7 +185,7 @@ class SessionImpl implements Session {
     this._model = options.model;
     this._thinking = options.thinking ?? false;
     this._yoloMode = options.yoloMode ?? false;
-    this._executable = options.executable ?? "kimi";
+    this._executable = options.executable ?? "spec-kimi";
     this._env = options.env ?? {};
     this._externalTools = options.externalTools ?? [];
     this._agentFile = options.agentFile;

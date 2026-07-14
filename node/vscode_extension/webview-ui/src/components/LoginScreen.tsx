@@ -121,7 +121,7 @@ export function LoginScreen({ onLoginSuccess, onSkip }: LoginScreenProps) {
           <div className="space-y-2">
             <h1 className="text-lg font-semibold">Welcome to Spec Kimi</h1>
             <div className="text-left space-y-2">
-              <p className="text-xs leading-5">Use Spec Kimi with your Kimi account subscription or your existing API setup.</p>
+              <p className="text-xs leading-5">Use Spec Kimi with your Spec Kimi account subscription or your existing API setup.</p>
             </div>
           </div>
 
@@ -134,9 +134,9 @@ export function LoginScreen({ onLoginSuccess, onSkip }: LoginScreenProps) {
           <div className="space-y-5">
             <div className="text-left space-y-1">
               <Button onClick={handleLogin} className="w-full justify-center gap-2">
-                Sign in with Kimi Account
+                Sign in with Spec Kimi Account
               </Button>
-              <p className="text-[11px] text-muted-foreground leading-4">Use your Kimi account and Spec Kimi subscription.</p>
+              <p className="text-[11px] text-muted-foreground leading-4">Use your Spec Kimi account and Spec Kimi subscription.</p>
             </div>
 
             <div className="text-left space-y-1">
