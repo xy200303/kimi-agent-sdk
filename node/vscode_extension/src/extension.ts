@@ -21,7 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
     const message = util.format(...args).replace(/\x1b\[[0-9;]*m/g, "");
     outputChannel.appendLine(message);
   });
-  console.log("Kimi SDK logs enabled");
+  console.log("Spec Kimi SDK logs enabled");
 
   const remoteInfo = vscode.env.remoteName ? ` (remote: ${vscode.env.remoteName})` : "";
   log(`Spec Kimi extension activating...${remoteInfo}`);
@@ -63,7 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider("kimi.webview", provider, {
+    vscode.window.registerWebviewViewProvider("spec-kimi.webview", provider, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
   );
@@ -73,19 +73,19 @@ export function activate(context: vscode.ExtensionContext) {
       await context.globalState.update("kimi.config", undefined);
       await context.globalState.update("kimi.mcpServers", undefined);
       await context.workspaceState.update("kimi.mcpEnabled", undefined);
-      vscode.window.showInformationMessage("Kimi: All state cleared!");
+      vscode.window.showInformationMessage("Spec Kimi: All state cleared!");
     },
     "kimi.openInTab": () => {
-      log("Opening Kimi in new tab");
+      log("Opening Spec Kimi in new tab");
       provider.createPanel();
     },
     "kimi.openInSideBar": async () => {
-      log("Opening Kimi in side bar");
-      await vscode.commands.executeCommand("kimi.webview.focus");
+      log("Opening Spec Kimi in side bar");
+      await vscode.commands.executeCommand("spec-kimi.webview.focus");
     },
     "kimi.focusInput": async () => {
-      log("Focusing Kimi input");
-      await vscode.commands.executeCommand("kimi.webview.focus");
+      log("Focusing Spec Kimi input");
+      await vscode.commands.executeCommand("spec-kimi.webview.focus");
       provider.broadcast(Events.FocusInput, {});
     },
     "kimi.insertMention": async () => {
@@ -108,25 +108,25 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       log(`Inserting mention: ${mention}`);
-      await vscode.commands.executeCommand("kimi.webview.focus");
+      await vscode.commands.executeCommand("spec-kimi.webview.focus");
       provider.broadcast(Events.InsertMention, { mention });
     },
     "kimi.newConversation": async () => {
-      log("Starting new conversation");
-      await vscode.commands.executeCommand("kimi.webview.focus");
+      log("Starting new Spec Kimi conversation");
+      await vscode.commands.executeCommand("spec-kimi.webview.focus");
       provider.broadcast(Events.NewConversation, {});
     },
     "kimi.showLogs": () => {
       outputChannel.show();
     },
     "kimi.resetKimi": async () => {
-      log("Resetting Kimi");
+      log("Resetting Spec Kimi");
       provider.reloadAllWebviews();
     },
     "kimi.logout": async () => {
       log("Logout requested via command palette");
-      await vscode.commands.executeCommand("kimi.webview.focus");
-      vscode.window.showInformationMessage("Please use the logout button in Kimi settings.");
+      await vscode.commands.executeCommand("spec-kimi.webview.focus");
+      vscode.window.showInformationMessage("Please use the logout button in Spec Kimi settings.");
     },
   };
 
@@ -134,11 +134,11 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(vscode.commands.registerCommand(id, handler));
   }
 
-  log("Kimi extension activated");
+  log("Spec Kimi extension activated");
 }
 
 export function deactivate() {
-  log("Kimi extension deactivating...");
+  log("Spec Kimi extension deactivating...");
 }
 
 function log(message: string) {

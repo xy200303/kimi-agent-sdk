@@ -172,17 +172,17 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "kimi-sidebar",
+          "id": "spec-kimi-sidebar",
           "title": "Spec Kimi",
           "icon": "resources/kimi-icon.svg"
         }
       ]
     },
     "views": {
-      "kimi-sidebar": [
+      "spec-kimi-sidebar": [
         {
           "type": "webview",
-          "id": "kimi.webview",
+          "id": "spec-kimi.webview",
           "name": "Spec Kimi"
         }
       ]
@@ -191,12 +191,12 @@
       "view/title": [
         {
           "command": "kimi.openInTab",
-          "when": "view == kimi.webview",
+          "when": "view == spec-kimi.webview",
           "group": "navigation"
         },
         {
           "command": "kimi.newConversation",
-          "when": "view == kimi.webview",
+          "when": "view == spec-kimi.webview",
           "group": "navigation"
         }
       ],
