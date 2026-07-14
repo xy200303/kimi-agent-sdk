@@ -397,6 +397,53 @@ describe("ProtocolClient", () => {
         { type: "TurnEnd", payload: {} },
       ]);
     });
+
+    it("preserves a cancelled ACP prompt result", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        } else if (request.method === "session/prompt") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { stopReason: "cancelled" } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+      const stream = client.sendPrompt("Hi");
+      await Array.fromAsync(stream.events);
+
+      await expect(stream.result).resolves.toEqual({ status: "cancelled" });
+    });
+
+    it("rejects a completed ACP prompt with unresolved tool calls", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        } else if (request.method === "session/prompt") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", method: "session/update", params: { update: { sessionUpdate: "tool_call", toolCallId: "tool-1", title: "Read" } } })}\n`);
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { stopReason: "end_turn" } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+      const stream = client.sendPrompt("Hi");
+      await Array.fromAsync(stream.events);
+
+      await expect(stream.result).rejects.toMatchObject({ code: "INCOMPLETE_TURN" });
+    });
   });
 
   describe("stop", () => {
