@@ -137,6 +137,7 @@ export class CLIManager {
 
     try {
       const initResult = await this.verifyWire(execPath, workDir);
+      console.log(`[kimi-code] CLI check passed, slash commands: ${initResult.slash_commands.length}`, initResult.slash_commands);
       return { ok: true, resolved, slashCommands: initResult.slash_commands };
     } catch (err) {
       console.error("Error verifying protocol:", err);

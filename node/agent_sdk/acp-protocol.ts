@@ -19,6 +19,7 @@ function parseSlashCommands(raw: unknown): SlashCommandInfo[] {
       commands.push(parsed.data);
     }
   }
+  log.protocol("Parsed %d slash commands from %d ACP candidates", commands.length, raw.length);
   return commands;
 }
 
