@@ -203,6 +203,12 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
     let result: RunResult = { status: "finished" };
 
     for await (const event of turn) {
+      // If the turn was aborted, drop subsequent events but keep draining the
+      // stream so the underlying prompt request can complete cleanly.
+      if (!ctx.getTurn(sessionId)) {
+        continue;
+      }
+
       const eventAny = event as any;
       const eventType = event.type;
       const payload = eventAny.payload;
@@ -278,13 +284,14 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
 };
 
 const abortChat: Handler<SessionTarget, { aborted: boolean }> = async (params, ctx) => {
-  const turn = ctx.getTurn(params.sessionId);
+  const sessionId = params.sessionId ?? ctx.getSessionId();
+  const turn = sessionId ? ctx.getTurn(sessionId) : undefined;
   if (turn) {
+    // Mark the turn as aborted before awaiting the cancel request so that any
+    // events still arriving from the CLI are dropped immediately instead of
+    // continuing to render in the UI.
+    ctx.setTurn(sessionId!, null);
     await turn.interrupt();
-    const sessionId = params.sessionId ?? ctx.getSessionId();
-    if (sessionId) {
-      ctx.setTurn(sessionId, null);
-    }
   }
   return { aborted: true };
 };
