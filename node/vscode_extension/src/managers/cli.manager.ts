@@ -117,6 +117,7 @@ export class CLIManager {
 
   private async verify(workDir: string, resolved: { isCustomPath: boolean; path: string }): Promise<CLICheckResult> {
     const execPath = resolved.path;
+    let wireVersionTooLow = false;
 
     try {
       const info = await this.getInfo(execPath);
@@ -126,7 +127,9 @@ export class CLIManager {
       }
       if (compareVersion(info.wire_protocol_version, MIN_WIRE_VERSION) < 0) {
         console.error(`Wire protocol version too low: ${info.wire_protocol_version} < ${MIN_WIRE_VERSION}`);
-        return { ok: false, resolved, error: { type: "version_low", message: `Wire ${info.wire_protocol_version} < ${MIN_WIRE_VERSION}` } };
+        // The CLI may still expose ACP even though the legacy Wire version is
+        // old. Let ProtocolClient.start negotiate ACP instead of failing here.
+        wireVersionTooLow = true;
       }
     } catch (err) {
       console.log("CLI does not support the legacy info command; trying ACP handshake", err);
@@ -136,7 +139,10 @@ export class CLIManager {
       const initResult = await this.verifyWire(execPath, workDir);
       return { ok: true, resolved, slashCommands: initResult.slash_commands };
     } catch (err) {
-      console.error("Error verifying wire protocol:", err);
+      console.error("Error verifying protocol:", err);
+      if (wireVersionTooLow) {
+        return { ok: false, resolved, error: { type: "version_low", message: `Wire ${MIN_WIRE_VERSION}+ or ACP required` } };
+      }
       return { ok: false, resolved, error: { type: "protocol_error", message: errorText(err) } };
     }
   }
