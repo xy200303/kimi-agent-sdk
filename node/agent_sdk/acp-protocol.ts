@@ -28,7 +28,7 @@ interface PendingRequest {
 
 interface PendingApproval {
   rpcId: string | number;
-  options: Array<{ optionId: string }>;
+  options: Array<{ optionId: string; name?: string; kind?: string }>;
 }
 
 interface AcpToolCall {
@@ -154,6 +154,35 @@ export class AcpProtocolClient {
     return this.request("session/cancel", { sessionId: this.sessionId }).then(() => {});
   }
 
+  sendSetMode(modeId: string): Promise<{ status: "ok"; plan_mode: boolean }> {
+    return this.request("session/set_mode", { sessionId: this.sessionId, modeId }).then(() => ({
+      status: "ok" as const,
+      plan_mode: modeId === "plan",
+    }));
+  }
+
+  sendSteer(): Promise<void> {
+    return Promise.reject(new ProtocolError("NOT_IMPLEMENTED", "Steering is not supported in ACP mode"));
+  }
+
+  sendQuestionResponse(requestId: string, answers: Record<string, string>): Promise<void> {
+    const pending = this.pendingApprovals.get(requestId);
+    if (!pending) {
+      return Promise.resolve();
+    }
+    const selected = pending.options.find((option) => {
+      const answerValues = Object.values(answers);
+      return answerValues.includes(option.optionId) || (option.name !== undefined && answerValues.includes(option.name));
+    });
+    this.pendingApprovals.delete(requestId);
+    this.write({
+      jsonrpc: "2.0",
+      id: pending.rpcId,
+      result: { outcome: selected ? { outcome: "selected", optionId: selected.optionId } : { outcome: "cancelled" } },
+    });
+    return Promise.resolve();
+  }
+
   sendApproval(requestId: string, response: ApprovalResponse): Promise<void> {
     const pending = this.pendingApprovals.get(requestId);
     if (!pending) return Promise.resolve();
@@ -225,8 +254,35 @@ export class AcpProtocolClient {
   private handleApproval(message: any): void {
     const params = message.params;
     const requestId = String(message.id);
-    this.pendingApprovals.set(requestId, { rpcId: message.id, options: params?.options ?? [] });
-    this.eventChannel?.push({ type: "ApprovalRequest", payload: { id: requestId, tool_call_id: params?.toolCall?.toolCallId ?? "acp", sender: params?.toolCall?.title ?? "Tool", action: "execute tool", description: params?.toolCall?.title ?? "Approval required" } });
+    const options = params?.options ?? [];
+    const toolCallTitle = params?.toolCall?.title ?? "Tool";
+
+    // ACP reuses session/request_permission for AskUserQuestion. Surface it as
+    // a Wire QuestionRequest so the webview renders the dedicated question UI.
+    if (toolCallTitle === "AskUserQuestion") {
+      const contentText = acpContentText(params?.toolCall?.content);
+      const questionText = typeof contentText === "string" && contentText.length > 0 ? contentText : "Question required";
+      this.pendingApprovals.set(requestId, { rpcId: message.id, options });
+      this.eventChannel?.push({
+        type: "QuestionRequest",
+        payload: {
+          id: requestId,
+          tool_call_id: params?.toolCall?.toolCallId ?? "acp",
+          questions: [
+            {
+              question: questionText,
+              options: options
+                .filter((option: { kind?: string }) => option.kind === "allow_once")
+                .map((option: { name: string }) => ({ label: option.name })),
+            },
+          ],
+        },
+      });
+      return;
+    }
+
+    this.pendingApprovals.set(requestId, { rpcId: message.id, options });
+    this.eventChannel?.push({ type: "ApprovalRequest", payload: { id: requestId, tool_call_id: params?.toolCall?.toolCallId ?? "acp", sender: toolCallTitle, action: "execute tool", description: toolCallTitle } });
   }
 
   private toRunResult(response: AcpPromptResponse | undefined): RunResult {

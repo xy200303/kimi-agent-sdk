@@ -424,6 +424,113 @@ describe("ProtocolClient", () => {
       expect(initResult.slash_commands).toEqual([{ name: "fix", description: "Fix code issues", aliases: [] }]);
     });
 
+    it("sets plan mode via ACP session/set_mode", async () => {
+      const proc = createMockProcess();
+      const requests: Array<{ method: string; params: Record<string, unknown> }> = [];
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        requests.push(request);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { agentInfo: { name: "Kimi", version: "test" } } })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        } else if (request.method === "session/set_mode") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+
+      const result = await client.sendSetMode("plan");
+      expect(result).toEqual({ status: "ok", plan_mode: true });
+      expect(requests).toContainEqual(expect.objectContaining({
+        method: "session/set_mode",
+        params: { sessionId: "session-1", modeId: "plan" },
+      }));
+
+      const offResult = await client.sendSetMode("default");
+      expect(offResult).toEqual({ status: "ok", plan_mode: false });
+    });
+
+    it("maps AskUserQuestion permission requests to Wire QuestionRequest events", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { agentInfo: { name: "Kimi", version: "test" } } })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+
+      const events: any[] = [];
+      const stream = client.sendPrompt("Hi");
+      const collectEvents = (async () => {
+        for await (const event of stream.events) {
+          events.push(event);
+        }
+      })();
+
+      await new Promise((r) => setTimeout(r, 10));
+
+      // Inject an ACP request_permission that carries AskUserQuestion metadata.
+      proc.stdout.push(`${JSON.stringify({
+        jsonrpc: "2.0",
+        id: 42,
+        method: "session/request_permission",
+        params: {
+          sessionId: "session-1",
+          toolCall: { toolCallId: "tc-1", title: "AskUserQuestion", content: [{ type: "content", content: { type: "text", text: "Which language?" } }] },
+          options: [
+            { optionId: "q0_opt_0", name: "Python", kind: "allow_once" },
+            { optionId: "q0_opt_1", name: "Go", kind: "allow_once" },
+            { optionId: "q0_skip", name: "Skip", kind: "reject_once" },
+          ],
+        },
+      })}\n`);
+
+      await new Promise((r) => setTimeout(r, 10));
+
+      const questionEvent = events.find((e) => e.type === "QuestionRequest");
+      expect(questionEvent).toBeDefined();
+      expect(questionEvent.payload.tool_call_id).toBe("tc-1");
+      expect(questionEvent.payload.questions[0].question).toBe("Which language?");
+      expect(questionEvent.payload.questions[0].options).toEqual([{ label: "Python" }, { label: "Go" }]);
+
+      // Completing the prompt lets the stream finish cleanly.
+      const promptReqId = JSON.parse(proc.stdin.write.mock.calls.at(-1)![0]).id;
+      proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: promptReqId, result: {} })}\n`);
+      await collectEvents;
+      await expect(stream.result).resolves.toEqual({ status: "finished" });
+    });
+
+    it("rejects steer in ACP mode with a clear error", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { agentInfo: { name: "Kimi", version: "test" } } })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+
+      await expect(client.sendSteer()).rejects.toMatchObject({ code: "NOT_IMPLEMENTED" });
+    });
+
     it("emits a step before ACP content updates", async () => {
       const proc = createMockProcess();
       proc.stdin.write.mockImplementation((line: string) => {

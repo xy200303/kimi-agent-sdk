@@ -322,6 +322,9 @@ export class ProtocolClient {
   }
 
   sendQuestionResponse(requestId: string, questionRequestId: string, answers: Record<string, string>): Promise<void> {
+    if (this.acpClient) {
+      return this.acpClient.sendQuestionResponse(requestId, answers);
+    }
     this.writeLine({
       jsonrpc: "2.0",
       id: requestId,
@@ -331,6 +334,11 @@ export class ProtocolClient {
   }
 
   sendSetPlanMode(enabled: boolean): Promise<SetPlanModeResult> {
+    if (this.acpClient) {
+      // ACP models plan mode as part of the session mode (default | plan | auto | yolo).
+      // The VS Code extension only toggles plan mode, so we map on -> plan and off -> default.
+      return this.acpClient.sendSetMode(enabled ? "plan" : "default");
+    }
     return this.sendRequest("set_plan_mode", { enabled })
       .then((res) => {
         const parsed = SetPlanModeResultSchema.safeParse(res);
@@ -342,6 +350,9 @@ export class ProtocolClient {
   }
 
   sendSteer(content: string | ContentPart[]): Promise<void> {
+    if (this.acpClient) {
+      return this.acpClient.sendSteer();
+    }
     return this.sendRequest("steer", { user_input: content }).then(() => {});
   }
 
