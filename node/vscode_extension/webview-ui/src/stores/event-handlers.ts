@@ -500,15 +500,20 @@ const eventHandlers: Record<string, EventHandler> = {
     applyEventToSteps(target.steps, target.event);
   },
 
-  ApprovalRequest: (_, payload: ApprovalRequestPayload) => {
+  ApprovalRequest: (draft, payload: ApprovalRequestPayload) => {
     useApprovalStore.getState().addRequest({
       id: payload.id,
+      sessionId: draft.sessionId,
       tool_call_id: payload.tool_call_id,
       sender: payload.sender,
       action: payload.action,
       description: payload.description,
       display: payload.display ?? [],
     });
+  },
+
+  approval_resolved: (_, payload: { requestId: string }) => {
+    useApprovalStore.getState().removeRequest(payload.requestId);
   },
 
   QuestionRequest: (draft, payload: QuestionRequest) => {

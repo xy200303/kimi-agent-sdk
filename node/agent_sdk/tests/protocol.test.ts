@@ -655,6 +655,31 @@ describe("ProtocolClient", () => {
       await expect(stream.result).resolves.toEqual({ status: "cancelled" });
     });
 
+    it("sends ACP cancellation as a notification", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+      await expect(client.sendCancel()).resolves.toBeUndefined();
+
+      const cancelNotification = JSON.parse(proc.stdin.write.mock.calls.at(-1)![0]);
+      expect(cancelNotification).toEqual({
+        jsonrpc: "2.0",
+        method: "session/cancel",
+        params: { sessionId: "session-1" },
+      });
+    });
+
     it("does not confuse a reverse permission request with a prompt response sharing its ID", async () => {
       const proc = createMockProcess();
       proc.stdin.write.mockImplementation((line: string) => {

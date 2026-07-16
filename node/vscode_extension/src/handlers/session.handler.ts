@@ -33,11 +33,7 @@ export const sessionHandlers: Record<string, Handler<any, any>> = {
   },
 
   [Methods.GetAllKimiSessions]: async (_, ctx) => {
-    if (!ctx.workspaceRoot) {
-      return [];
-    }
-
-    return ctx.conversationStore.list(ctx.workspaceRoot);
+    return ctx.conversationStore.list();
   },
 
   [Methods.GetRegisteredWorkDirs]: async (_, ctx) => {

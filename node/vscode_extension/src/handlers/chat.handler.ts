@@ -297,8 +297,13 @@ const abortChat: Handler<SessionTarget, { aborted: boolean }> = async (params, c
 };
 
 const respondApproval: Handler<RespondApprovalParams & SessionTarget, { ok: boolean }> = async (params, ctx) => {
-  const turn = ctx.getTurn(params.sessionId);
-  turn?.approve(params.requestId, params.response);
+  const sessionId = params.sessionId ?? ctx.getSessionId();
+  const turn = ctx.getTurn(sessionId ?? undefined);
+  if (turn && sessionId) {
+    await turn.approve(params.requestId, params.response);
+    const recorded = ctx.recordSessionEvent(sessionId, { type: "approval_resolved", requestId: params.requestId });
+    ctx.broadcast(Events.StreamEvent, recorded, ctx.webviewId);
+  }
   return { ok: true };
 };
 

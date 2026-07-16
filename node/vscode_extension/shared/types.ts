@@ -62,6 +62,7 @@ type SessionEventMetadata = { _sessionId?: string; _sequence?: number };
 export type UIStreamEvent =
   | ({ type: "session_start"; sessionId: string; model?: string; slashCommands?: SlashCommandInfo[] } & SessionEventMetadata)
   | ({ type: "stream_complete"; result: RunResult } & SessionEventMetadata)
+  | ({ type: "approval_resolved"; requestId: string } & SessionEventMetadata)
   | (StreamError & SessionEventMetadata)
   | (StreamEvent & SessionEventMetadata);
 

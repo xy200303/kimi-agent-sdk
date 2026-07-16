@@ -53,6 +53,32 @@ function getTodoBlock(display?: DisplayBlock[]): TodoBlock | null {
   return (display.find((b) => b.type === "todo") as TodoBlock) || null;
 }
 
+function tryParseTodoItems(output: unknown): TodoBlock["items"] | null {
+  if (typeof output !== "string" || !output.trim()) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(output);
+    if (parsed && Array.isArray(parsed.items)) {
+      return parsed.items;
+    }
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return null;
+}
+
+function getTodoItems(result?: ToolResultValue): TodoBlock["items"] | null {
+  const todoBlock = getTodoBlock(result?.display);
+  if (todoBlock?.items && todoBlock.items.length > 0) {
+    return todoBlock.items;
+  }
+  return tryParseTodoItems(result?.output);
+}
+
 function getRichDisplayBlocks(display?: DisplayBlock[]): DisplayBlock[] {
   if (!display) {
     return [];
@@ -112,6 +138,7 @@ function ToolIcon({ name }: { name: string }) {
     case "Task":
       return <IconSubtask className={iconClass} />;
     case "SetTodoList":
+    case "set_todo_list":
       return <IconListCheck className={iconClass} />;
     default:
       return <IconTerminal2 className={iconClass} />;
@@ -142,14 +169,24 @@ function TodoStatusIcon({ status }: { status: string }) {
 }
 
 function SetTodoListTool({ result }: ToolRendererProps) {
-  const todoBlock = getTodoBlock(result?.display);
-  if (!todoBlock || !todoBlock.items || todoBlock.items.length === 0) {
-    return <div className="py-2 text-xs text-muted-foreground">{!result?.is_error && "Todo list updated"}</div>;
+  const items = getTodoItems(result);
+  if (!items || items.length === 0) {
+    const output = result ? formatOutput(result.output) : "";
+    return (
+      <div className="py-2 text-xs text-muted-foreground">
+        {!result?.is_error && "Todo list updated"}
+        {output && (
+          <div className="mt-1.5">
+            <CodeBlock content={output} maxLines={10} />
+          </div>
+        )}
+      </div>
+    );
   }
   return (
     <div className="py-1">
       <div className="space-y-1">
-        {todoBlock.items.map((item, idx) => (
+        {items.map((item, idx) => (
           <div key={idx} className="flex items-start gap-1 py-0.5">
             <div className="mt-0.5">
               <TodoStatusIcon status={item.status} />
@@ -398,6 +435,7 @@ function getToolLabel(call: UIToolCall): string {
     case "Task":
       return (args.description as string) || "subagent task";
     case "SetTodoList":
+    case "set_todo_list":
       return "Update Todos";
     default:
       return "";
@@ -425,6 +463,7 @@ export function ToolCallCard({ call, result, subagentSteps }: ToolRendererProps)
       case "Agent":
         return <TaskTool {...props} />;
       case "SetTodoList":
+      case "set_todo_list":
         return <SetTodoListTool {...props} />;
       default:
         return <GenericTool {...props} />;

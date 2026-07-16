@@ -4,6 +4,7 @@ import { bridge } from "@/services";
 
 export interface ApprovalRequest {
   id: string;
+  sessionId: string | null;
   tool_call_id: string;
   sender: string;
   action: string;
@@ -31,7 +32,8 @@ export const useApprovalStore = create<ApprovalState>((set, get) => ({
   },
 
   respondToRequest: async (id, response) => {
-    await bridge.respondApproval(id, response);
+    const request = get().pending.find((item) => item.id === id);
+    await bridge.respondApproval(id, response, request?.sessionId ?? undefined);
     get().removeRequest(id);
   },
 

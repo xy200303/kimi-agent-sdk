@@ -176,7 +176,8 @@ export class AcpProtocolClient {
   }
 
   sendCancel(): Promise<void> {
-    return this.request("session/cancel", { sessionId: this.sessionId }).then(() => {});
+    this.write({ jsonrpc: "2.0", method: "session/cancel", params: { sessionId: this.sessionId } });
+    return Promise.resolve();
   }
 
   sendSetMode(modeId: string): Promise<{ status: "ok"; plan_mode: boolean }> {

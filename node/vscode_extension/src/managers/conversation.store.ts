@@ -81,11 +81,13 @@ export class ConversationStore {
     return [...events];
   }
 
-  async list(workspaceRoot: string): Promise<SessionInfo[]> {
+  async list(workspaceRoot?: string): Promise<SessionInfo[]> {
     await this.ensureInitialized();
-    return [...this.index.values()]
-      .filter((session) => isWithinWorkspace(workspaceRoot, session.workDir))
-      .sort((a, b) => b.updatedAt - a.updatedAt);
+    const sessions = [...this.index.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+    if (!workspaceRoot) {
+      return sessions;
+    }
+    return sessions.filter((session) => isWithinWorkspace(workspaceRoot, session.workDir));
   }
 
   async delete(sessionId: string): Promise<boolean> {
